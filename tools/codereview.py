@@ -190,23 +190,10 @@ class CodeReviewTool(WorkflowTool):
 
     def get_description(self) -> str:
         return (
-            "COMPREHENSIVE CODE REVIEW WORKFLOW - Step-by-step code review with expert analysis. "
-            "This tool guides you through a systematic investigation process where you:\n\n"
-            "1. Start with step 1: describe your code review investigation plan\n"
-            "2. STOP and investigate code structure, patterns, and potential issues\n"
-            "3. Report findings in step 2 with concrete evidence from actual code analysis\n"
-            "4. Continue investigating between each step\n"
-            "5. Track findings, relevant files, and issues throughout\n"
-            "6. Update assessments as understanding evolves\n"
-            "7. Once investigation is complete, receive expert analysis\n\n"
-            "IMPORTANT: This tool enforces investigation between steps:\n"
-            "- After each call, you MUST investigate before calling again\n"
-            "- Each step must include NEW evidence from code examination\n"
-            "- No recursive calls without actual investigation work\n"
-            "- The tool will specify which step number to use next\n"
-            "- Follow the required_actions list for investigation guidance\n\n"
-            "Perfect for: comprehensive code review, security audits, performance analysis, "
-            "architectural assessment, code quality evaluation, anti-pattern detection."
+            "CODE REVIEW - Structured review with issue identification. "
+            "Use for: security audits, performance analysis, code quality evaluation, anti-pattern detection. "
+            "Review types: full, security, performance, quick. "
+            "Identifies issues by severity and provides actionable feedback."
         )
 
     def get_system_prompt(self) -> str:
@@ -227,6 +214,7 @@ class CodeReviewTool(WorkflowTool):
 
     def get_input_schema(self) -> dict[str, Any]:
         """Generate input schema using WorkflowSchemaBuilder with code review-specific overrides."""
+        from .shared.schema_builders import SchemaBuilder
         from .workflow.schema_builders import WorkflowSchemaBuilder
 
         # Code review workflow-specific field overrides
@@ -254,18 +242,16 @@ class CodeReviewTool(WorkflowTool):
                 "description": CODEREVIEW_WORKFLOW_FIELD_DESCRIPTIONS["findings"],
             },
             "files_checked": {
-                "type": "array",
-                "items": {"type": "string"},
+                **SchemaBuilder._BASE_SCHEMAS["string_array"],
                 "description": CODEREVIEW_WORKFLOW_FIELD_DESCRIPTIONS["files_checked"],
             },
             "relevant_files": {
-                "type": "array",
-                "items": {"type": "string"},
+                **SchemaBuilder._BASE_SCHEMAS["string_array"],
                 "description": CODEREVIEW_WORKFLOW_FIELD_DESCRIPTIONS["relevant_files"],
             },
             "confidence": {
                 "type": "string",
-                "enum": ["exploring", "low", "medium", "high", "very_high", "almost_certain", "certain"],
+                "enum": SchemaBuilder._ENUM_VALUES["confidence"],
                 "description": CODEREVIEW_WORKFLOW_FIELD_DESCRIPTIONS["confidence"],
             },
             "backtrack_from_step": {
@@ -274,13 +260,11 @@ class CodeReviewTool(WorkflowTool):
                 "description": CODEREVIEW_WORKFLOW_FIELD_DESCRIPTIONS["backtrack_from_step"],
             },
             "issues_found": {
-                "type": "array",
-                "items": {"type": "object"},
+                **SchemaBuilder._BASE_SCHEMAS["object_array"],
                 "description": CODEREVIEW_WORKFLOW_FIELD_DESCRIPTIONS["issues_found"],
             },
             "images": {
-                "type": "array",
-                "items": {"type": "string"},
+                **SchemaBuilder._BASE_SCHEMAS["string_array"],
                 "description": CODEREVIEW_WORKFLOW_FIELD_DESCRIPTIONS["images"],
             },
             # Code review-specific fields (for step 1)

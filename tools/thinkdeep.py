@@ -140,15 +140,10 @@ class ThinkDeepTool(WorkflowTool):
 
     name = "thinkdeep"
     description = (
-        "COMPREHENSIVE INVESTIGATION & REASONING - Multi-stage workflow for complex problem analysis. "
-        "Use this when you need structured evidence-based investigation, systematic hypothesis testing, or expert validation. "
-        "Perfect for: architecture decisions, complex bugs, performance challenges, security analysis. "
-        "Provides methodical investigation with assumption validation, alternative solution exploration, and rigorous analysis. "
-        "IMPORTANT: Choose the appropriate mode based on task complexity - 'low' for quick investigation, "
-        "'medium' for standard problems, 'high' for complex issues (default), 'max' for extremely complex "
-        "challenges requiring exhaustive investigation. When in doubt, err on the side of a higher mode for thorough "
-        "systematic analysis and expert validation. Note: If you're not currently using a top-tier model such as Opus 4 or above, "
-        "these tools can provide enhanced capabilities."
+        "INVESTIGATION & REASONING - Multi-stage workflow for complex problems. "
+        "Use for: architecture decisions, complex bugs, performance challenges, security analysis. "
+        "Provides systematic hypothesis testing with expert validation. "
+        "Modes: low (quick), medium (standard), high (complex/default), max (exhaustive)."
     )
 
     def __init__(self):
@@ -177,6 +172,7 @@ class ThinkDeepTool(WorkflowTool):
 
     def get_input_schema(self) -> dict[str, Any]:
         """Generate input schema using WorkflowSchemaBuilder with thinkdeep-specific overrides."""
+        from .shared.schema_builders import SchemaBuilder
         from .workflow.schema_builders import WorkflowSchemaBuilder
 
         # ThinkDeep workflow-specific field overrides
@@ -186,8 +182,7 @@ class ThinkDeepTool(WorkflowTool):
                 "description": "Provide additional context about the problem or goal. Be as expressive as possible. More information will be very helpful for the analysis.",
             },
             "focus_areas": {
-                "type": "array",
-                "items": {"type": "string"},
+                **SchemaBuilder._BASE_SCHEMAS["string_array"],
                 "description": "Specific aspects to focus on (architecture, performance, security, etc.)",
             },
         }

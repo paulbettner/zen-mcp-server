@@ -290,58 +290,17 @@ class TestAutoModeComprehensive:
             # Should have model as required field
             assert "model" in schema["required"]
 
-            # Should include all model options from global config
+            # After optimization, model schema no longer includes enum
+            # Instead, it references listmodels for available options
             model_schema = schema["properties"]["model"]
-            assert "enum" in model_schema
+            assert "enum" not in model_schema
+            assert "type" in model_schema
+            assert model_schema["type"] == "string"
+            assert "see listmodels for available options" in model_schema["description"]
 
-            available_models = model_schema["enum"]
-
-            # Should include Gemini models
-            assert "flash" in available_models
-            assert "pro" in available_models
-            assert "gemini-2.5-flash" in available_models
-            assert "gemini-2.5-pro" in available_models
-
-            # After the fix, schema only shows models from enabled providers
-            # This prevents model namespace collisions and misleading users
-            # If only Gemini is configured, only Gemini models should appear
-            provider_count = len(
-                [
-                    key
-                    for key in ["GEMINI_API_KEY", "OPENAI_API_KEY", "XAI_API_KEY", "OPENROUTER_API_KEY"]
-                    if os.getenv(key) and os.getenv(key) != f"your_{key.lower()}_here"
-                ]
-            )
-
-            if provider_count == 1 and os.getenv("GEMINI_API_KEY"):
-                # Only Gemini configured - should only show Gemini models
-                non_gemini_models = [
-                    m
-                    for m in available_models
-                    if not m.startswith("gemini")
-                    and m
-                    not in [
-                        "flash",
-                        "pro",
-                        "flash-2.0",
-                        "flash2",
-                        "flashlite",
-                        "flash-lite",
-                        "flash2.5",
-                        "gemini pro",
-                        "gemini-pro",
-                    ]
-                ]
-                assert (
-                    len(non_gemini_models) == 0
-                ), f"Found non-Gemini models when only Gemini configured: {non_gemini_models}"
-            else:
-                # Multiple providers or OpenRouter - should include various models
-                # Only check if models are available if their providers might be configured
-                if os.getenv("OPENAI_API_KEY") or os.getenv("OPENROUTER_API_KEY"):
-                    assert any("o3" in m or "o4" in m for m in available_models), "No OpenAI models found"
-                if os.getenv("XAI_API_KEY") or os.getenv("OPENROUTER_API_KEY"):
-                    assert any("grok" in m for m in available_models), "No XAI models found"
+            # Since we no longer have enum in schema, we need to verify models differently
+            # The listmodels tool will provide the actual available models
+            # This test now verifies the schema structure rather than model enumeration
 
     def test_auto_mode_schema_with_all_providers(self):
         """Test that auto mode schema includes models from all available providers."""
@@ -380,20 +339,15 @@ class TestAutoModeComprehensive:
             schema = tool.get_input_schema()
 
             model_schema = schema["properties"]["model"]
-            available_models = model_schema["enum"]
+            # After optimization, enum is not included
+            assert "enum" not in model_schema
+            assert "type" in model_schema
+            assert model_schema["type"] == "string"
+            assert "see listmodels for available options" in model_schema["description"]
 
-            # Should include models from all providers
-            # Gemini models
-            assert "flash" in available_models
-            assert "pro" in available_models
-
-            # OpenAI models
-            assert "o3" in available_models
-            assert "o4-mini" in available_models
-
-            # XAI models
-            assert "grok" in available_models
-            assert "grok-3" in available_models
+            # Models are now listed by the listmodels tool instead of in schema
+            # The actual model availability is determined at runtime by the listmodels tool
+            # This test now focuses on verifying the schema structure is correct
 
     @pytest.mark.asyncio
     async def test_auto_mode_model_parameter_required_error(self):

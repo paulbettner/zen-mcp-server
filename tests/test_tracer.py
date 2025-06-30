@@ -23,10 +23,10 @@ class TestTracerTool:
     def test_get_description(self, tracer_tool):
         """Test that the tool returns a comprehensive description"""
         description = tracer_tool.get_description()
-        assert "STEP-BY-STEP CODE TRACING WORKFLOW" in description
+        assert "CODE TRACING" in description
         assert "precision" in description
         assert "dependencies" in description
-        assert "guided investigation" in description
+        assert "architectural understanding" in description
 
     def test_get_input_schema(self, tracer_tool):
         """Test that the input schema includes required fields"""

@@ -159,18 +159,10 @@ class TestGenTool(WorkflowTool):
 
     def get_description(self) -> str:
         return (
-            "COMPREHENSIVE TEST GENERATION - Creates thorough test suites with edge case coverage. "
-            "Use this when you need to generate tests for code, create test scaffolding, or improve test coverage. "
-            "BE SPECIFIC about scope: target specific functions/classes/modules rather than testing everything. "
-            "Examples: 'Generate tests for User.login() method', 'Test payment processing validation', "
-            "'Create tests for authentication error handling'. If user request is vague, either ask for "
-            "clarification about specific components to test, or make focused scope decisions and explain them. "
-            "Analyzes code paths, identifies realistic failure modes, and generates framework-specific tests. "
-            "Supports test pattern following when examples are provided. Choose thinking_mode based on "
-            "code complexity: 'low' for simple functions, 'medium' for standard modules (default), "
-            "'high' for complex systems with many interactions, 'max' for critical systems requiring "
-            "exhaustive test coverage. Note: If you're not currently using a top-tier model such as "
-            "Opus 4 or above, these tools can provide enhanced capabilities."
+            "TEST GENERATION - Creates comprehensive test suites with edge cases. "
+            "Use for: unit tests, integration tests, test scaffolding, coverage improvement. "
+            "BE SPECIFIC: target functions/classes/modules (e.g., 'test User.login()'). "
+            "Analyzes code paths, identifies failure modes, follows existing patterns."
         )
 
     def get_system_prompt(self) -> str:
@@ -191,6 +183,7 @@ class TestGenTool(WorkflowTool):
 
     def get_input_schema(self) -> dict[str, Any]:
         """Generate input schema using WorkflowSchemaBuilder with test generation-specific overrides."""
+        from .shared.schema_builders import SchemaBuilder
         from .workflow.schema_builders import WorkflowSchemaBuilder
 
         # Test generation workflow-specific field overrides
@@ -218,18 +211,16 @@ class TestGenTool(WorkflowTool):
                 "description": TESTGEN_WORKFLOW_FIELD_DESCRIPTIONS["findings"],
             },
             "files_checked": {
-                "type": "array",
-                "items": {"type": "string"},
+                **SchemaBuilder._BASE_SCHEMAS["string_array"],
                 "description": TESTGEN_WORKFLOW_FIELD_DESCRIPTIONS["files_checked"],
             },
             "relevant_files": {
-                "type": "array",
-                "items": {"type": "string"},
+                **SchemaBuilder._BASE_SCHEMAS["string_array"],
                 "description": TESTGEN_WORKFLOW_FIELD_DESCRIPTIONS["relevant_files"],
             },
             "confidence": {
                 "type": "string",
-                "enum": ["exploring", "low", "medium", "high", "very_high", "almost_certain", "certain"],
+                "enum": SchemaBuilder._ENUM_VALUES["confidence"],
                 "description": TESTGEN_WORKFLOW_FIELD_DESCRIPTIONS["confidence"],
             },
             "backtrack_from_step": {
@@ -238,8 +229,7 @@ class TestGenTool(WorkflowTool):
                 "description": TESTGEN_WORKFLOW_FIELD_DESCRIPTIONS["backtrack_from_step"],
             },
             "images": {
-                "type": "array",
-                "items": {"type": "string"},
+                **SchemaBuilder._BASE_SCHEMAS["string_array"],
                 "description": TESTGEN_WORKFLOW_FIELD_DESCRIPTIONS["images"],
             },
         }

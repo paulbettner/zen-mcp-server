@@ -68,10 +68,10 @@ class TestRefactorTool:
     def test_get_description(self, refactor_tool):
         """Test that the tool returns a comprehensive description"""
         description = refactor_tool.get_description()
-        assert "COMPREHENSIVE REFACTORING WORKFLOW" in description
+        assert "REFACTORING ANALYSIS" in description
         assert "code smell detection" in description
         assert "decomposition planning" in description
-        assert "modernization opportunities" in description
+        assert "modernization" in description
         assert "organization improvements" in description
 
     def test_get_input_schema(self, refactor_tool):

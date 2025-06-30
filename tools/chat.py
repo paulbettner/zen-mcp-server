@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from pydantic import Field
 
+from tools.shared.schema_builders import SchemaBuilder
+
 if TYPE_CHECKING:
     from tools.models import ToolModelCategory
 
@@ -60,14 +62,9 @@ class ChatTool(SimpleTool):
 
     def get_description(self) -> str:
         return (
-            "GENERAL CHAT & COLLABORATIVE THINKING - Use the AI model as your thinking partner! "
-            "Perfect for: bouncing ideas during your own analysis, getting second opinions on your plans, "
-            "collaborative brainstorming, validating your checklists and approaches, exploring alternatives. "
-            "Also great for: explanations, comparisons, general development questions. "
-            "Use this when you want to ask questions, brainstorm ideas, get opinions, discuss topics, "
-            "share your thinking, or need explanations about concepts and approaches. "
-            "Note: If you're not currently using a top-tier model such as Opus 4 or above, these tools can "
-            "provide enhanced capabilities."
+            "CHAT & COLLABORATION - General conversation and thinking partner. "
+            "Use for: brainstorming, second opinions, explanations, comparisons, development questions. "
+            "Perfect when you need to discuss ideas or validate approaches without structured workflow."
         )
 
     def get_system_prompt(self) -> str:
@@ -97,62 +94,56 @@ class ChatTool(SimpleTool):
         the same schema generation approach while still benefiting from SimpleTool
         convenience methods.
         """
-        schema = {
-            "type": "object",
-            "properties": {
-                "prompt": {
-                    "type": "string",
-                    "description": CHAT_FIELD_DESCRIPTIONS["prompt"],
-                },
-                "files": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": CHAT_FIELD_DESCRIPTIONS["files"],
-                },
-                "images": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": CHAT_FIELD_DESCRIPTIONS["images"],
-                },
-                "model": self.get_model_field_schema(),
-                "temperature": {
-                    "type": "number",
-                    "description": "Response creativity (0-1, default 0.5)",
-                    "minimum": 0,
-                    "maximum": 1,
-                },
-                "thinking_mode": {
-                    "type": "string",
-                    "enum": ["minimal", "low", "medium", "high", "max"],
-                    "description": (
-                        "Thinking depth: minimal (0.5% of model max), low (8%), medium (33%), high (67%), "
-                        "max (100% of model max)"
-                    ),
-                },
-                "use_websearch": {
-                    "type": "boolean",
-                    "description": (
-                        "Enable web search for documentation, best practices, and current information. "
-                        "Particularly useful for: brainstorming sessions, architectural design discussions, "
-                        "exploring industry best practices, working with specific frameworks/technologies, "
-                        "researching solutions to complex problems, or when current documentation and "
-                        "community insights would enhance the analysis."
-                    ),
-                    "default": True,
-                },
-                "continuation_id": {
-                    "type": "string",
-                    "description": (
-                        "Thread continuation ID for multi-turn conversations. Can be used to continue "
-                        "conversations across different tools. Only provide this if continuing a previous "
-                        "conversation thread."
-                    ),
-                },
+        properties = {
+            "prompt": {
+                "type": "string",
+                "description": CHAT_FIELD_DESCRIPTIONS["prompt"],
             },
-            "required": ["prompt"] + (["model"] if self.is_effective_auto_mode() else []),
+            "files": {
+                **SchemaBuilder._BASE_SCHEMAS["string_array"],
+                "description": CHAT_FIELD_DESCRIPTIONS["files"],
+            },
+            "images": {
+                **SchemaBuilder._BASE_SCHEMAS["string_array"],
+                "description": CHAT_FIELD_DESCRIPTIONS["images"],
+            },
+            "model": self.get_model_field_schema(),
+            "temperature": {
+                **SchemaBuilder._BASE_SCHEMAS["number_range"](0, 1),
+                "description": "Response creativity (0-1, default 0.5)",
+            },
+            "thinking_mode": {
+                "type": "string",
+                "enum": SchemaBuilder._ENUM_VALUES["thinking_mode"],
+                "description": (
+                    "Thinking depth: minimal (0.5% of model max), low (8%), medium (33%), high (67%), "
+                    "max (100% of model max)"
+                ),
+            },
+            "use_websearch": {
+                "type": "boolean",
+                "description": (
+                    "Enable web search for documentation, best practices, and current information. "
+                    "Particularly useful for: brainstorming sessions, architectural design discussions, "
+                    "exploring industry best practices, working with specific frameworks/technologies, "
+                    "researching solutions to complex problems, or when current documentation and "
+                    "community insights would enhance the analysis."
+                ),
+                "default": True,
+            },
+            "continuation_id": {
+                "type": "string",
+                "description": (
+                    "Thread continuation ID for multi-turn conversations. Can be used to continue "
+                    "conversations across different tools. Only provide this if continuing a previous "
+                    "conversation thread."
+                ),
+            },
         }
 
-        return schema
+        required = ["prompt"] + (["model"] if self.is_effective_auto_mode() else [])
+
+        return SchemaBuilder._build_schema_object(properties, required)
 
     # === Tool-specific field definitions (alternative approach for reference) ===
     # These aren't used since we override get_input_schema(), but they show how

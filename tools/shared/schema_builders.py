@@ -19,17 +19,30 @@ class SchemaBuilder:
     Workflow tools use WorkflowSchemaBuilder in workflow/schema_builders.py.
     """
 
+    # Define reusable schema components once
+    _BASE_SCHEMAS = {
+        "string_array": {"type": "array", "items": {"type": "string"}},
+        "object_array": {"type": "array", "items": {"type": "object"}},
+        "number_range": lambda min_val, max_val: {"type": "number", "minimum": min_val, "maximum": max_val},
+    }
+
+    # Define reusable enum values
+    _ENUM_VALUES = {
+        "thinking_mode": ["minimal", "low", "medium", "high", "max"],
+        "confidence": ["exploring", "low", "medium", "high", "very_high", "almost_certain", "certain"],
+        "confidence_basic": ["exploring", "low", "medium", "high", "certain"],
+        "confidence_refactor": ["exploring", "incomplete", "partial", "complete"],
+    }
+
     # Common field schemas that can be reused across all tool types
     COMMON_FIELD_SCHEMAS = {
         "temperature": {
-            "type": "number",
+            **_BASE_SCHEMAS["number_range"](0.0, 1.0),
             "description": COMMON_FIELD_DESCRIPTIONS["temperature"],
-            "minimum": 0.0,
-            "maximum": 1.0,
         },
         "thinking_mode": {
             "type": "string",
-            "enum": ["minimal", "low", "medium", "high", "max"],
+            "enum": _ENUM_VALUES["thinking_mode"],
             "description": COMMON_FIELD_DESCRIPTIONS["thinking_mode"],
         },
         "use_websearch": {
@@ -42,8 +55,7 @@ class SchemaBuilder:
             "description": COMMON_FIELD_DESCRIPTIONS["continuation_id"],
         },
         "images": {
-            "type": "array",
-            "items": {"type": "string"},
+            **_BASE_SCHEMAS["string_array"],
             "description": COMMON_FIELD_DESCRIPTIONS["images"],
         },
     }
@@ -51,8 +63,7 @@ class SchemaBuilder:
     # Simple tool-specific field schemas (workflow tools use relevant_files instead)
     SIMPLE_FIELD_SCHEMAS = {
         "files": {
-            "type": "array",
-            "items": {"type": "string"},
+            **_BASE_SCHEMAS["string_array"],
             "description": COMMON_FIELD_DESCRIPTIONS["files"],
         },
     }
@@ -98,6 +109,11 @@ class SchemaBuilder:
             required.append("model")
 
         # Build the complete schema
+        return SchemaBuilder._build_schema_object(properties, required)
+
+    @staticmethod
+    def _build_schema_object(properties: dict, required: list[str] = None, title: str = None) -> dict[str, Any]:
+        """Build a complete JSON schema object with standard fields."""
         schema = {
             "$schema": "http://json-schema.org/draft-07/schema#",
             "type": "object",
@@ -107,6 +123,9 @@ class SchemaBuilder:
 
         if required:
             schema["required"] = required
+
+        if title:
+            schema["title"] = title
 
         return schema
 

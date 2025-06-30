@@ -20,65 +20,30 @@ logger = logging.getLogger(__name__)
 
 # Shared field descriptions to avoid duplication
 COMMON_FIELD_DESCRIPTIONS = {
-    "model": (
-        "Model to use. See tool's input schema for available models and their capabilities. "
-        "Use 'auto' to let Claude select the best model for the task."
-    ),
-    "temperature": (
-        "Temperature for response (0.0 to 1.0). Lower values are more focused and deterministic, "
-        "higher values are more creative. Tool-specific defaults apply if not specified."
-    ),
-    "thinking_mode": (
-        "Thinking depth: minimal (0.5% of model max), low (8%), medium (33%), high (67%), "
-        "max (100% of model max). Higher modes enable deeper reasoning at the cost of speed."
-    ),
-    "use_websearch": (
-        "Enable web search for documentation, best practices, and current information. "
-        "When enabled, the model can request Claude to perform web searches and share results back "
-        "during conversations. Particularly useful for: brainstorming sessions, architectural design "
-        "discussions, exploring industry best practices, working with specific frameworks/technologies, "
-        "researching solutions to complex problems, or when current documentation and community insights "
-        "would enhance the analysis."
-    ),
-    "continuation_id": (
-        "Thread continuation ID for multi-turn conversations. When provided, the complete conversation "
-        "history is automatically embedded as context. Your response should build upon this history "
-        "without repeating previous analysis or instructions. Focus on providing only new insights, "
-        "additional findings, or answers to follow-up questions. Can be used across different tools."
-    ),
-    "images": (
-        "Optional image(s) for visual context. Accepts absolute file paths or "
-        "base64 data URLs. Only provide when user explicitly mentions images. "
-        "When including images, please describe what you believe each image contains "
-        "to aid with contextual understanding. Useful for UI discussions, diagrams, "
-        "visual problems, error screens, architecture mockups, and visual analysis tasks."
-    ),
-    "files": ("Optional files for context (must be FULL absolute paths to real files / folders - DO NOT SHORTEN)"),
+    "model": "AI model to use (see listmodels for available options)",
+    "temperature": "Response creativity (0-1, default 0.5)",
+    "thinking_mode": "Thinking depth: minimal (0.5%), low (8%), medium (33%), high (67%), max (100%)",
+    "use_websearch": "Enable web search?",
+    "continuation_id": "Thread ID to continue conversation",
+    "images": "Optional images (absolute paths or base64)",
+    "files": "Optional files (must be FULL absolute paths - DO NOT SHORTEN)",
 }
 
 # Workflow-specific field descriptions
 WORKFLOW_FIELD_DESCRIPTIONS = {
-    "step": "Current work step content and findings from your overall work",
-    "step_number": "Current step number in the work sequence (starts at 1)",
-    "total_steps": "Estimated total steps needed to complete the work",
-    "next_step_required": "Whether another work step is needed after this one",
-    "findings": "Important findings, evidence and insights discovered in this step of the work",
-    "files_checked": "List of files examined during this work step",
-    "relevant_files": "Files identified as relevant to the issue/goal",
-    "relevant_context": "Methods/functions identified as involved in the issue",
-    "issues_found": "Issues identified with severity levels during work",
-    "confidence": (
-        "Confidence level in findings: exploring (just starting), low (early investigation), "
-        "medium (some evidence), high (strong evidence), very_high (comprehensive understanding), "
-        "almost_certain (near complete confidence), certain (100% confidence locally - no external validation needed)"
-    ),
-    "hypothesis": "Current theory about the issue/goal based on work",
-    "backtrack_from_step": "Step number to backtrack from if work needs revision",
-    "use_assistant_model": (
-        "Whether to use assistant model for expert analysis after completing the workflow steps. "
-        "Set to False to skip expert analysis and rely solely on Claude's investigation. "
-        "Defaults to True for comprehensive validation."
-    ),
+    "step": "Current work step content and findings",
+    "step_number": "Current step number (starts at 1)",
+    "total_steps": "Estimated total steps needed",
+    "next_step_required": "Continue to next step?",
+    "findings": "Discoveries from this step",
+    "files_checked": "List all files examined",
+    "relevant_files": "Files relevant to the task",
+    "relevant_context": "Key methods/functions involved",
+    "issues_found": "Issues with severity levels",
+    "confidence": "Current confidence level",
+    "hypothesis": "Current theory based on findings",
+    "backtrack_from_step": "Step to restart from if needed",
+    "use_assistant_model": "Use expert analysis? (default True)",
 }
 
 

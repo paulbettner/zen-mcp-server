@@ -22,7 +22,7 @@ class TestChatTool:
     def test_tool_metadata(self):
         """Test that tool metadata matches requirements"""
         assert self.tool.get_name() == "chat"
-        assert "GENERAL CHAT & COLLABORATIVE THINKING" in self.tool.get_description()
+        assert "CHAT & COLLABORATION" in self.tool.get_description()
         assert self.tool.get_system_prompt() is not None
         assert self.tool.get_default_temperature() > 0
         assert self.tool.get_model_category() is not None
@@ -84,15 +84,14 @@ class TestChatTool:
         assert schema["type"] == "string"
         assert "description" in schema
 
-        # In auto mode, should have enum. In normal mode, should have model descriptions
-        if self.tool.is_effective_auto_mode():
-            assert "enum" in schema
-            assert len(schema["enum"]) > 0
-            assert "IMPORTANT:" in schema["description"]
-        else:
-            # Normal mode - should have model descriptions in description
-            assert "Model to use" in schema["description"]
-            assert "Native models:" in schema["description"]
+        # After optimization, both modes reference listmodels without enum
+        assert "enum" not in schema
+        assert "AI model to use" in schema["description"]
+        assert "see listmodels for available options" in schema["description"]
+
+        # In normal mode, also includes default
+        if not self.tool.is_effective_auto_mode():
+            assert "Defaults to" in schema["description"]
 
     @pytest.mark.asyncio
     async def test_prompt_preparation(self):

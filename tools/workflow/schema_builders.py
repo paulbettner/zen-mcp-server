@@ -19,7 +19,7 @@ class WorkflowSchemaBuilder:
     and schema generation logic, maintaining separation of concerns.
     """
 
-    # Workflow-specific field schemas
+    # Workflow-specific field schemas using base schemas for reuse
     WORKFLOW_FIELD_SCHEMAS = {
         "step": {
             "type": "string",
@@ -44,28 +44,24 @@ class WorkflowSchemaBuilder:
             "description": WORKFLOW_FIELD_DESCRIPTIONS["findings"],
         },
         "files_checked": {
-            "type": "array",
-            "items": {"type": "string"},
+            **SchemaBuilder._BASE_SCHEMAS["string_array"],
             "description": WORKFLOW_FIELD_DESCRIPTIONS["files_checked"],
         },
         "relevant_files": {
-            "type": "array",
-            "items": {"type": "string"},
+            **SchemaBuilder._BASE_SCHEMAS["string_array"],
             "description": WORKFLOW_FIELD_DESCRIPTIONS["relevant_files"],
         },
         "relevant_context": {
-            "type": "array",
-            "items": {"type": "string"},
+            **SchemaBuilder._BASE_SCHEMAS["string_array"],
             "description": WORKFLOW_FIELD_DESCRIPTIONS["relevant_context"],
         },
         "issues_found": {
-            "type": "array",
-            "items": {"type": "object"},
+            **SchemaBuilder._BASE_SCHEMAS["object_array"],
             "description": WORKFLOW_FIELD_DESCRIPTIONS["issues_found"],
         },
         "confidence": {
             "type": "string",
-            "enum": ["exploring", "low", "medium", "high", "very_high", "almost_certain", "certain"],
+            "enum": SchemaBuilder._ENUM_VALUES["confidence"],
             "description": WORKFLOW_FIELD_DESCRIPTIONS["confidence"],
         },
         "hypothesis": {
@@ -146,18 +142,8 @@ class WorkflowSchemaBuilder:
             required.append("model")
 
         # Build the complete schema
-        schema = {
-            "$schema": "http://json-schema.org/draft-07/schema#",
-            "type": "object",
-            "properties": properties,
-            "required": required,
-            "additionalProperties": False,
-        }
-
-        if tool_name:
-            schema["title"] = f"{tool_name.capitalize()}Request"
-
-        return schema
+        title = f"{tool_name.capitalize()}Request" if tool_name else None
+        return SchemaBuilder._build_schema_object(properties, required, title)
 
     @staticmethod
     def get_workflow_fields() -> dict[str, dict[str, Any]]:
