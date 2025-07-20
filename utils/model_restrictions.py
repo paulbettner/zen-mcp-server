@@ -51,7 +51,22 @@ class ModelRestrictionService:
     def __init__(self):
         """Initialize the restriction service by loading from environment."""
         self.restrictions: dict[ProviderType, set[str]] = {}
-        self._load_from_env()
+
+        # Hardcode restrictions to only allow o3, o3-pro, and gemini 2.5 pro
+        # Note: o3-pro is an alias for o3-pro-2025-06-10, so we need to include both
+        self.restrictions[ProviderType.OPENAI] = {"o3", "o3-pro", "o3-pro-2025-06-10"}
+        self.restrictions[ProviderType.GOOGLE] = {"gemini-2.5-pro", "pro"}  # "pro" is an alias for gemini-2.5-pro
+        self.restrictions[ProviderType.OPENROUTER] = {"openai/o3", "openai/o3-pro", "google/gemini-2.5-pro"}
+
+        # Disable all other providers by setting empty allowed sets
+        self.restrictions[ProviderType.XAI] = set()
+        self.restrictions[ProviderType.DIAL] = set()
+        self.restrictions[ProviderType.CUSTOM] = set()
+
+        logger.info("Model restrictions hardcoded: OpenAI: o3, o3-pro | Google: gemini-2.5-pro | All others disabled")
+
+        # Still load from env but it won't override the hardcoded values
+        # self._load_from_env()  # Commented out to prevent env override
 
     def _load_from_env(self) -> None:
         """Load restrictions from environment variables."""
@@ -92,6 +107,10 @@ class ModelRestrictionService:
             if not provider:
                 continue
 
+            # Skip validation for empty sets (disabled providers)
+            if not allowed_models:
+                continue
+
             # Get all supported models using the clean polymorphic interface
             try:
                 # Use list_all_known_models to get both aliases and their targets
@@ -104,10 +123,9 @@ class ModelRestrictionService:
             # Check each allowed model
             for allowed_model in allowed_models:
                 if allowed_model not in supported_models:
-                    logger.warning(
-                        f"Model '{allowed_model}' in {self.ENV_VARS[provider_type]} "
-                        f"is not a recognized {provider_type.value} model. "
-                        f"Please check for typos. Known models: {sorted(supported_models)}"
+                    logger.debug(
+                        f"Hardcoded model '{allowed_model}' for {provider_type.value} "
+                        f"may not be in provider's model list. This is expected for hardcoded restrictions."
                     )
 
     def is_allowed(self, provider_type: ProviderType, model_name: str, original_name: Optional[str] = None) -> bool:
@@ -129,8 +147,8 @@ class ModelRestrictionService:
         allowed_set = self.restrictions[provider_type]
 
         if len(allowed_set) == 0:
-            # Empty set - allowed
-            return True
+            # Empty set means provider is disabled - nothing allowed
+            return False
 
         # Check both the resolved name and original name (if different)
         names_to_check = {model_name.lower()}
@@ -187,7 +205,9 @@ class ModelRestrictionService:
         Returns:
             Dictionary with provider names and their restrictions
         """
-        summary = {}
+        summary = {
+            "_note": "Restrictions are HARDCODED - environment variables are ignored",
+        }
         for provider_type, allowed_set in self.restrictions.items():
             if allowed_set:
                 summary[provider_type.value] = sorted(allowed_set)

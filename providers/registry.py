@@ -324,13 +324,10 @@ class ModelProviderRegistry:
             elif xai_available and xai_models:
                 # Fall back to any available XAI model
                 return xai_models[0]
-            elif gemini_available and any("flash" in m for m in gemini_models):
-                # Find the flash model (handles full names)
-                # Prefer 2.5 over 2.0 for backward compatibility
-                flash_models = [m for m in gemini_models if "flash" in m]
-                # Sort to ensure 2.5 comes before 2.0
-                flash_models_sorted = sorted(flash_models, reverse=True)
-                return flash_models_sorted[0]
+            elif gemini_available and any("pro" in m for m in gemini_models):
+                # Find the pro model (handles full names)
+                pro_models = [m for m in gemini_models if "pro" in m]
+                return pro_models[0]
             elif gemini_available and gemini_models:
                 # Fall back to any available Gemini model
                 return gemini_models[0]
@@ -341,8 +338,10 @@ class ModelProviderRegistry:
                 # Fallback to custom models when available
                 return custom_models[0]
             else:
-                # Default to flash
-                return "gemini-2.5-flash"
+                # Default to pro if available, otherwise first available model
+                if available_models:
+                    return list(available_models.keys())[0]
+                return "gemini-2.5-pro"  # Fallback to allowed model
 
         # BALANCED or no category specified - use existing balanced logic
         if openai_available and "o4-mini" in openai_models:
@@ -355,11 +354,10 @@ class ModelProviderRegistry:
             return "grok-3"  # GROK-3 as balanced choice
         elif xai_available and xai_models:
             return xai_models[0]
-        elif gemini_available and any("flash" in m for m in gemini_models):
-            # Prefer 2.5 over 2.0 for backward compatibility
-            flash_models = [m for m in gemini_models if "flash" in m]
-            flash_models_sorted = sorted(flash_models, reverse=True)
-            return flash_models_sorted[0]
+        elif gemini_available and any("pro" in m for m in gemini_models):
+            # Use pro model when available
+            pro_models = [m for m in gemini_models if "pro" in m]
+            return pro_models[0]
         elif gemini_available and gemini_models:
             return gemini_models[0]
         elif openrouter_available:
@@ -372,8 +370,10 @@ class ModelProviderRegistry:
             if not available_models:
                 # This might happen if all models are restricted
                 logging.warning("No models available due to restrictions")
-            # Return a reasonable default for backward compatibility
-            return "gemini-2.5-flash"
+                # Return an allowed model as fallback
+                return "gemini-2.5-pro"
+            # Return first available model
+            return list(available_models.keys())[0]
 
     @classmethod
     def _find_extended_thinking_model(cls) -> Optional[str]:

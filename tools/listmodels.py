@@ -110,40 +110,51 @@ class ListModelsTool(BaseTool):
                 output_lines.append("**Status**: Configured and available")
                 output_lines.append("\n**Models**:")
 
-                # Get models from the provider's model configurations
-                for model_name, capabilities in provider.get_model_configurations().items():
-                    # Get description and context from the ModelCapabilities object
-                    description = capabilities.description or "No description available"
-                    context_window = capabilities.context_window
+                # Get models from the provider's model configurations, filtered by restrictions
+                from utils.model_restrictions import get_restriction_service
+                restriction_service = get_restriction_service()
+                
+                all_models = provider.get_model_configurations()
+                displayed_models = []
+                
+                for model_name, capabilities in all_models.items():
+                    # Check if model is allowed
+                    if restriction_service.is_allowed(provider_type, model_name):
+                        displayed_models.append((model_name, capabilities))
+                        # Get description and context from the ModelCapabilities object
+                        description = capabilities.description or "No description available"
+                        context_window = capabilities.context_window
 
-                    # Format context window
-                    if context_window >= 1_000_000:
-                        context_str = f"{context_window // 1_000_000}M context"
-                    elif context_window >= 1_000:
-                        context_str = f"{context_window // 1_000}K context"
-                    else:
-                        context_str = f"{context_window} context" if context_window > 0 else "unknown context"
+                        # Format context window
+                        if context_window >= 1_000_000:
+                            context_str = f"{context_window // 1_000_000}M context"
+                        elif context_window >= 1_000:
+                            context_str = f"{context_window // 1_000}K context"
+                        else:
+                            context_str = f"{context_window} context" if context_window > 0 else "unknown context"
 
-                    output_lines.append(f"- `{model_name}` - {context_str}")
+                        output_lines.append(f"- `{model_name}` - {context_str}")
 
-                    # Extract key capability from description
-                    if "Ultra-fast" in description:
-                        output_lines.append("  - Fast processing, quick iterations")
-                    elif "Deep reasoning" in description:
-                        output_lines.append("  - Extended reasoning with thinking mode")
-                    elif "Strong reasoning" in description:
-                        output_lines.append("  - Logical problems, systematic analysis")
-                    elif "EXTREMELY EXPENSIVE" in description:
-                        output_lines.append("  - ⚠️ Professional grade (very expensive)")
-                    elif "Advanced reasoning" in description:
-                        output_lines.append("  - Advanced reasoning and complex analysis")
+                        # Extract key capability from description
+                        if "Ultra-fast" in description:
+                            output_lines.append("  - Fast processing, quick iterations")
+                        elif "Deep reasoning" in description:
+                            output_lines.append("  - Extended reasoning with thinking mode")
+                        elif "Strong reasoning" in description:
+                            output_lines.append("  - Logical problems, systematic analysis")
+                        elif "EXTREMELY EXPENSIVE" in description:
+                            output_lines.append("  - ⚠️ Professional grade (very expensive)")
+                        elif "Advanced reasoning" in description:
+                            output_lines.append("  - Advanced reasoning and complex analysis")
 
                 # Show aliases for this provider
                 aliases = []
-                for model_name, capabilities in provider.get_model_configurations().items():
+                for model_name, capabilities in displayed_models:
                     if capabilities.aliases:
                         for alias in capabilities.aliases:
-                            aliases.append(f"- `{alias}` → `{model_name}`")
+                            # Check if alias is also allowed
+                            if restriction_service.is_allowed(provider_type, model_name, alias):
+                                aliases.append(f"- `{alias}` → `{model_name}`")
 
                 if aliases:
                     output_lines.append("\n**Aliases**:")
@@ -240,21 +251,52 @@ class ListModelsTool(BaseTool):
             output_lines.append("**Description**: Local models via Ollama, vLLM, LM Studio, etc.")
 
             try:
-                registry = OpenRouterModelRegistry()
-                custom_models = []
+                # Check if custom models are restricted
+                from utils.model_restrictions import get_restriction_service
+                from providers.base import ProviderType
+                
+                restriction_service = get_restriction_service()
+                if restriction_service.has_restrictions(ProviderType.CUSTOM):
+                    allowed_set = restriction_service.get_allowed_models(ProviderType.CUSTOM)
+                    if len(allowed_set) == 0:
+                        output_lines.append("\n**Note**: Custom models are disabled by restriction policy")
+                    else:
+                        registry = OpenRouterModelRegistry()
+                        custom_models = []
 
-                for alias in registry.list_aliases():
-                    config = registry.resolve(alias)
-                    if config and config.is_custom:
-                        custom_models.append((alias, config))
+                        for alias in registry.list_aliases():
+                            config = registry.resolve(alias)
+                            if config and config.is_custom:
+                                # Check if this custom model is allowed
+                                if restriction_service.is_allowed(ProviderType.CUSTOM, config.model_name, alias):
+                                    custom_models.append((alias, config))
 
-                if custom_models:
-                    output_lines.append("\n**Custom Models**:")
-                    for alias, config in custom_models:
-                        context_str = f"{config.context_window // 1000}K" if config.context_window else "?"
-                        output_lines.append(f"- `{alias}` → `{config.model_name}` ({context_str} context)")
-                        if config.description:
-                            output_lines.append(f"  - {config.description}")
+                        if custom_models:
+                            output_lines.append("\n**Custom Models**:")
+                            for alias, config in custom_models:
+                                context_str = f"{config.context_window // 1000}K" if config.context_window else "?"
+                                output_lines.append(f"- `{alias}` → `{config.model_name}` ({context_str} context)")
+                                if config.description:
+                                    output_lines.append(f"  - {config.description}")
+                        else:
+                            output_lines.append("\n**Note**: No custom models allowed by restriction policy")
+                else:
+                    # No restrictions, show all custom models
+                    registry = OpenRouterModelRegistry()
+                    custom_models = []
+
+                    for alias in registry.list_aliases():
+                        config = registry.resolve(alias)
+                        if config and config.is_custom:
+                            custom_models.append((alias, config))
+
+                    if custom_models:
+                        output_lines.append("\n**Custom Models**:")
+                        for alias, config in custom_models:
+                            context_str = f"{config.context_window // 1000}K" if config.context_window else "?"
+                            output_lines.append(f"- `{alias}` → `{config.model_name}` ({context_str} context)")
+                            if config.description:
+                                output_lines.append(f"  - {config.description}")
 
             except Exception as e:
                 output_lines.append(f"**Error loading custom models**: {str(e)}")
