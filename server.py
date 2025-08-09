@@ -163,6 +163,7 @@ except Exception as e:
 
 logger = logging.getLogger(__name__)
 
+
 # Create the MCP server instance with a unique name identifier
 # This name is used by MCP clients to identify and connect to this specific server
 server: Server = Server("zen-server")
@@ -408,9 +409,9 @@ def configure_providers():
     openai_key = os.getenv("OPENAI_API_KEY")
     logger.debug(f"OpenAI key check: key={'[PRESENT]' if openai_key else '[MISSING]'}")
     if openai_key and openai_key != "your_openai_api_key_here":
-        valid_providers.append("OpenAI (o3)")
+        valid_providers.append("OpenAI")
         has_native_apis = True
-        logger.info("OpenAI API key found - o3 model available")
+        logger.info("OpenAI API key found")
     else:
         if not openai_key:
             logger.debug("OpenAI API key not found in environment")
@@ -492,7 +493,7 @@ def configure_providers():
         raise ValueError(
             "At least one API configuration is required. Please set either:\n"
             "- GEMINI_API_KEY for Gemini models\n"
-            "- OPENAI_API_KEY for OpenAI o3 model\n"
+            "- OPENAI_API_KEY for OpenAI models\n"
             "- XAI_API_KEY for X.AI GROK models\n"
             "- DIAL_API_KEY for DIAL models\n"
             "- OPENROUTER_API_KEY for OpenRouter (multiple models)\n"
@@ -588,6 +589,27 @@ async def handle_list_tools() -> list[Tool]:
         List of Tool objects representing all available tools
     """
     logger.debug("MCP client requested tool list")
+
+    # Try to log client info if available (this happens early in the handshake)
+    try:
+        from utils.client_info import format_client_info, get_client_info_from_context
+
+        client_info = get_client_info_from_context(server)
+        if client_info:
+            formatted = format_client_info(client_info)
+            logger.info(f"MCP Client Connected: {formatted}")
+
+            # Log to activity file as well
+            try:
+                mcp_activity_logger = logging.getLogger("mcp_activity")
+                friendly_name = client_info.get("friendly_name", "Claude")
+                raw_name = client_info.get("name", "Unknown")
+                version = client_info.get("version", "Unknown")
+                mcp_activity_logger.info(f"MCP_CLIENT_INFO: {friendly_name} (raw={raw_name} v{version})")
+            except Exception:
+                pass
+    except Exception as e:
+        logger.debug(f"Could not log client info during list_tools: {e}")
     tools = []
 
     # Add all registered AI-powered tools from the TOOLS registry
@@ -720,7 +742,9 @@ async def handle_call_tool(name: str, arguments: dict[str, Any]) -> list[TextCon
         # Parse model:option format if present
         model_name, model_option = parse_model_option(model_name)
         if model_option:
-            logger.debug(f"Parsed model format - model: '{model_name}', option: '{model_option}'")
+            logger.info(f"Parsed model format - model: '{model_name}', option: '{model_option}'")
+        else:
+            logger.info(f"Parsed model format - model: '{model_name}'")
 
         # Consensus tool handles its own model configuration validation
         # No special handling needed at server level
@@ -1168,16 +1192,16 @@ async def handle_get_prompt(name: str, arguments: dict[str, Any] = None) -> GetP
     """
     Get prompt details and generate the actual prompt text.
 
-    This handler is called when a user invokes a prompt (e.g., /zen:thinkdeeper or /zen:chat:o3).
+    This handler is called when a user invokes a prompt (e.g., /zen:thinkdeeper or /zen:chat:gpt5).
     It generates the appropriate text that Claude will then use to call the
     underlying tool.
 
-    Supports structured prompt names like "chat:o3" where:
+    Supports structured prompt names like "chat:gpt5" where:
     - "chat" is the tool name
-    - "o3" is the model to use
+    - "gpt5" is the model to use
 
     Args:
-        name: The name of the prompt to execute (can include model like "chat:o3")
+        name: The name of the prompt to execute (can include model like "chat:gpt5")
         arguments: Optional arguments for the prompt (e.g., model, thinking_mode)
 
     Returns:
@@ -1246,7 +1270,12 @@ async def handle_get_prompt(name: str, arguments: dict[str, Any] = None) -> GetP
     # Generate tool call instruction
     if name.lower() == "continue":
         # "/zen:continue" case
-        tool_instruction = f"Continue the previous conversation using the {tool_name} tool"
+        tool_instruction = (
+            f"Continue the previous conversation using the {tool_name} tool. "
+            "CRITICAL: You MUST provide the continuation_id from the previous response to maintain conversation context. "
+            "Additionally, you should reuse the same model that was used in the previous exchange for consistency, unless "
+            "the user specifically asks for a different model name to be used."
+        )
     else:
         # Simple prompt case
         tool_instruction = prompt_text
@@ -1283,6 +1312,9 @@ async def main():
     # Log startup message
     logger.info("Zen MCP Server starting up...")
     logger.info(f"Log level: {log_level}")
+
+    # Note: MCP client info will be logged during the protocol handshake
+    # (when handle_list_tools is called)
 
     # Log current model mode
     from config import IS_AUTO_MODE

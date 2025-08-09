@@ -24,9 +24,9 @@ class TestChallengeTool:
     def test_tool_metadata(self):
         """Test that tool metadata matches requirements"""
         assert self.tool.get_name() == "challenge"
-        assert "CRITICAL CHALLENGE PROMPT" in self.tool.get_description()
-        assert "critical examination" in self.tool.get_description()
-        assert "default agreement" in self.tool.get_description()
+        assert "prevent reflexive agreement" in self.tool.get_description()
+        assert "think critically" in self.tool.get_description()
+        assert "thoughtful evaluation" in self.tool.get_description()
         assert self.tool.get_default_temperature() == 0.2  # TEMPERATURE_ANALYTICAL
 
     def test_requires_model(self):
@@ -93,7 +93,7 @@ class TestChallengeTool:
         response_data = json.loads(result[0].text)
 
         # Check response structure
-        assert response_data["status"] == "challenge_created"
+        assert response_data["status"] == "challenge_accepted"
         assert response_data["original_statement"] == "All software bugs are caused by syntax errors"
         assert "challenge_prompt" in response_data
         assert "instructions" in response_data
@@ -154,8 +154,8 @@ class TestChallengeTool:
 
         assert "prompt" in fields
         assert fields["prompt"]["type"] == "string"
-        assert "statement" in fields["prompt"]["description"]
-        assert "critically evaluate" in fields["prompt"]["description"]
+        assert "message or statement" in fields["prompt"]["description"]
+        assert "analyze critically" in fields["prompt"]["description"]
 
     def test_required_fields_list(self):
         """Test required fields list"""

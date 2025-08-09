@@ -36,16 +36,51 @@ logger = logging.getLogger(__name__)
 
 # Tool-specific field descriptions for consensus workflow
 CONSENSUS_WORKFLOW_FIELD_DESCRIPTIONS = {
-    "step": "Step 1: your balanced analysis. Steps 2+: process model responses",
-    "step_number": "Current step (1=your analysis, 2+=model responses)",
-    "total_steps": "Total steps = number of models to consult",
-    "next_step_required": "More models to consult?",
-    "findings": "Step 1: your analysis. Steps 2+: key points from model response",
-    "relevant_files": "Files relevant to the proposal",
-    "models": "Model configs: [{model, stance, stance_prompt}]. Stances: for/against/neutral",
-    "current_model_index": "Internal: which model being consulted (0-based)",
-    "model_responses": "Internal: accumulated model responses",
-    "images": "Optional visuals (UI mockups, diagrams, etc.)",
+    "step": (
+        "In step 1: Provide the EXACT question or proposal that ALL models will evaluate. This should be phrased as a clear "
+        "question or problem statement, NOT as 'I will analyze...' or 'Let me examine...'. For example: 'Should we build a "
+        "search component in SwiftUI for use in an AppKit app?' or 'Evaluate the proposal to migrate our database from MySQL "
+        "to PostgreSQL'. This exact text will be sent to all models for their independent evaluation. "
+        "In subsequent steps (2+): This field is for internal tracking only - you can provide notes about the model response "
+        "you just received. This will NOT be sent to other models (they all receive the original proposal from step 1)."
+    ),
+    "step_number": (
+        "The index of the current step in the consensus workflow, beginning at 1. Step 1 is your analysis, "
+        "steps 2+ are for processing individual model responses."
+    ),
+    "total_steps": (
+        "Total number of steps needed. This equals the number of models to consult. "
+        "Step 1 includes your analysis + first model consultation on return of the call. Final step includes "
+        "last model consultation + synthesis."
+    ),
+    "next_step_required": ("Set to true if more models need to be consulted. False when ready for final synthesis."),
+    "findings": (
+        "In step 1: Provide YOUR OWN comprehensive analysis of the proposal/question. This is where you share your "
+        "independent evaluation, considering technical feasibility, risks, benefits, and alternatives. This analysis "
+        "is NOT sent to other models - it's recorded for the final synthesis. "
+        "In steps 2+: Summarize the key points from the model response received, noting agreements and disagreements "
+        "with previous analyses."
+    ),
+    "relevant_files": (
+        "Files that are relevant to the consensus analysis. Include files that help understand the proposal, "
+        "provide context, or contain implementation details."
+    ),
+    "models": (
+        "List of model configurations to consult. Each can have a model name, stance (for/against/neutral), "
+        "and optional custom stance prompt. The same model can be used multiple times with different stances, "
+        "but each model + stance combination must be unique. "
+        "Example: [{'model': 'o3', 'stance': 'for'}, {'model': 'o3', 'stance': 'against'}, "
+        "{'model': 'flash', 'stance': 'neutral'}]"
+    ),
+    "current_model_index": (
+        "Internal tracking of which model is being consulted (0-based index). Used to determine which model "
+        "to call next."
+    ),
+    "model_responses": ("Accumulated responses from models consulted so far. Internal field for tracking progress."),
+    "images": (
+        "Optional list of image paths or base64 data URLs for visual context. Useful for UI/UX discussions, "
+        "architecture diagrams, mockups, or any visual references that help inform the consensus analysis."
+    ),
 }
 
 
@@ -130,6 +165,7 @@ class ConsensusTool(WorkflowTool):
     def __init__(self):
         super().__init__()
         self.initial_prompt: str | None = None
+        self.original_proposal: str | None = None  # Store the original proposal separately
         self.models_to_consult: list[dict] = []
         self.accumulated_responses: list[dict] = []
         self._current_arguments: dict[str, Any] = {}
@@ -349,7 +385,7 @@ of the evidence, even when it strongly points in one direction.""",
 
         # Prepare final synthesis data
         response_data["complete_consensus"] = {
-            "initial_prompt": self.initial_prompt,
+            "initial_prompt": self.original_proposal if self.original_proposal else self.initial_prompt,
             "models_consulted": [m["model"] + ":" + m.get("stance", "neutral") for m in self.accumulated_responses],
             "total_responses": len(self.accumulated_responses),
             "consensus_confidence": "high",  # Consensus complete
@@ -400,7 +436,9 @@ of the evidence, even when it strongly points in one direction.""",
 
         # On first step, store the models to consult
         if request.step_number == 1:
-            self.initial_prompt = request.step
+            # Store the original proposal from step 1 - this is what all models should see
+            self.original_proposal = request.step
+            self.initial_prompt = request.step  # Keep for backward compatibility
             self.models_to_consult = request.models or []
             self.accumulated_responses = []
             # Set total steps: len(models) (each step includes consultation + response)
@@ -443,7 +481,7 @@ of the evidence, even when it strongly points in one direction.""",
                     response_data["status"] = "consensus_workflow_complete"
                     response_data["consensus_complete"] = True
                     response_data["complete_consensus"] = {
-                        "initial_prompt": self.initial_prompt,
+                        "initial_prompt": self.original_proposal if self.original_proposal else self.initial_prompt,
                         "models_consulted": [
                             f"{m['model']}:{m.get('stance', 'neutral')}" for m in self.accumulated_responses
                         ],
@@ -492,11 +530,15 @@ of the evidence, even when it strongly points in one direction.""",
             provider = self.get_model_provider(model_name)
 
             # Prepare the prompt with any relevant files
-            prompt = self.initial_prompt
+            # Use continuation_id=None for blinded consensus - each model should only see
+            # original prompt + files, not conversation history or other model responses
+            # CRITICAL: Use the original proposal from step 1, NOT what's in request.step for steps 2+!
+            # Steps 2+ contain summaries/notes that must NEVER be sent to other models
+            prompt = self.original_proposal if self.original_proposal else self.initial_prompt
             if request.relevant_files:
                 file_content, _ = self._prepare_file_content_for_prompt(
                     request.relevant_files,
-                    request.continuation_id,
+                    None,  # Use None instead of request.continuation_id for blinded consensus
                     "Context files",
                 )
                 if file_content:
@@ -714,7 +756,8 @@ of the evidence, even when it strongly points in one direction.""",
 
     def store_initial_issue(self, step_description: str):
         """Store initial prompt for model consultations."""
-        self.initial_prompt = step_description
+        self.original_proposal = step_description
+        self.initial_prompt = step_description  # Keep for backward compatibility
 
     # Required abstract methods from BaseTool
     def get_request_model(self):

@@ -290,6 +290,7 @@ nano .env
 # The file will contain, at least one should be set:
 # GEMINI_API_KEY=your-gemini-api-key-here  # For Gemini models
 # OPENAI_API_KEY=your-openai-api-key-here  # For O3 model
+# XAI_API_KEY=your-xai-api-key-here        # For Grok models
 # OPENROUTER_API_KEY=your-openrouter-key  # For OpenRouter (see docs/custom_models.md)
 # DIAL_API_KEY=your-dial-api-key-here      # For DIAL platform
 
@@ -417,6 +418,17 @@ challenge isn't adding this function to the base class a bad idea?
 
 Normally, your favorite coding agent will enthusiastically reply with **“You’re absolutely right!”**—then proceed 
 to completely reverse the _correct_ strategy, without ever explaining why you're wrong.
+
+<details>
+  <summary>Example: Without vs With Zen</summary>
+
+  **Without Zen:**
+  ![without_zen@2x](https://github.com/user-attachments/assets/64f3c9fb-7ca9-4876-b687-25e847edfd87)
+
+  **With Zen:**
+  ![with_zen@2x](https://github.com/user-attachments/assets/9d72f444-ba53-4ab1-83e5-250062c6ee70)
+
+  </details>
 
 **[📖 Read More](docs/tools/challenge.md)** - Challenge an approach or validate ideas with confidence
 
