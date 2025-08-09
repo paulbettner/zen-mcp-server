@@ -509,11 +509,16 @@ of the evidence, even when it strongly points in one direction.""",
 
                 # Add metadata (since we're bypassing the base class metadata addition)
                 model_name = self.get_request_model_name(request)
-                provider = self.get_model_provider(model_name)
+                provider, fallback_warning = self.get_model_provider(model_name)
+                
+                # Add fallback warning if model was not available
+                if fallback_warning:
+                    response_data["model_fallback_warning"] = fallback_warning
+                    
                 response_data["metadata"] = {
                     "tool_name": self.get_name(),
                     "model_name": model_name,
-                    "model_used": model_name,
+                    "model_used": "gpt-5" if fallback_warning else model_name,
                     "provider_used": provider.get_provider_type().value,
                 }
 
@@ -527,7 +532,14 @@ of the evidence, even when it strongly points in one direction.""",
         try:
             # Get the provider for this model
             model_name = model_config["model"]
-            provider = self.get_model_provider(model_name)
+            provider, fallback_warning = self.get_model_provider(model_name)
+            
+            # If model fell back, update the model name
+            if fallback_warning:
+                actual_model = "gpt-5"
+                logger.warning(f"Consensus: {fallback_warning}")
+            else:
+                actual_model = model_name
 
             # Prepare the prompt with any relevant files
             # Use continuation_id=None for blinded consensus - each model should only see
@@ -552,23 +564,30 @@ of the evidence, even when it strongly points in one direction.""",
             # Call the model
             response = provider.generate_content(
                 prompt=prompt,
-                model_name=model_name,
+                model_name=actual_model,  # Use the actual model (could be fallback)
                 system_prompt=system_prompt,
                 temperature=0.2,  # Low temperature for consistency
                 thinking_mode="medium",
                 images=request.images if request.images else None,
             )
 
-            return {
-                "model": model_name,
+            result = {
+                "model": model_name,  # Keep original requested model name
+                "actual_model": actual_model if fallback_warning else None,  # Show actual if different
                 "stance": stance,
                 "status": "success",
                 "verdict": response.content,
                 "metadata": {
                     "provider": provider.get_provider_type().value,
-                    "model_name": model_name,
+                    "model_name": actual_model,
                 },
             }
+            
+            # Add fallback warning to result if applicable
+            if fallback_warning:
+                result["fallback_warning"] = fallback_warning
+                
+            return result
 
         except Exception as e:
             logger.exception("Error consulting model %s", model_config)

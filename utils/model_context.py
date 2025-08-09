@@ -66,22 +66,49 @@ class ModelContext:
         self._provider = None
         self._capabilities = None
         self._token_allocation = None
+        self.fallback_warning = None  # Track if model fell back to GPT-5
+        self.actual_model_name = model_name  # Track actual model being used
 
     @property
     def provider(self):
-        """Get the model provider lazily."""
+        """Get the model provider lazily, with fallback to GPT-5."""
         if self._provider is None:
             self._provider = ModelProviderRegistry.get_provider_for_model(self.model_name)
             if not self._provider:
-                available_models = ModelProviderRegistry.get_available_models()
-                raise ValueError(f"Model '{self.model_name}' is not available. Available models: {available_models}")
+                # Model not found - try fallback to GPT-5 or first available model
+                logger.warning(f"Model '{self.model_name}' not available, attempting fallback with maximum reasoning")
+                
+                # Try GPT-5 first
+                fallback_model = "gpt-5"
+                self._provider = ModelProviderRegistry.get_provider_for_model(fallback_model)
+                
+                # If GPT-5 not available, try other common models
+                if not self._provider:
+                    for fallback_model in ["o3", "pro", "gemini-2.5-pro"]:
+                        self._provider = ModelProviderRegistry.get_provider_for_model(fallback_model)
+                        if self._provider:
+                            break
+                
+                if self._provider:
+                    # Update actual model name and set warning
+                    self.actual_model_name = fallback_model
+                    available_models = ModelProviderRegistry.get_available_models()
+                    self.fallback_warning = (
+                        f"⚠️ Model '{self.model_name}' is not available. Using {fallback_model} with maximum reasoning instead. "
+                        f"Available models: {', '.join(sorted(available_models.keys())[:10])}..."
+                    )
+                else:
+                    # Even fallback failed - raise original error
+                    available_models = ModelProviderRegistry.get_available_models()
+                    raise ValueError(f"Model '{self.model_name}' is not available. Available models: {available_models}")
         return self._provider
 
     @property
     def capabilities(self) -> ModelCapabilities:
         """Get model capabilities lazily."""
         if self._capabilities is None:
-            self._capabilities = self.provider.get_capabilities(self.model_name)
+            # Use the actual model name (could be fallback) for capabilities
+            self._capabilities = self.provider.get_capabilities(self.actual_model_name)
         return self._capabilities
 
     def calculate_token_allocation(self, reserved_for_response: Optional[int] = None) -> TokenAllocation:

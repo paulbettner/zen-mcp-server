@@ -765,29 +765,31 @@ async def handle_call_tool(name: str, arguments: dict[str, Any]) -> list[TextCon
             # Update arguments with resolved model
             arguments["model"] = model_name
 
-        # Validate model availability at MCP boundary
-        provider = ModelProviderRegistry.get_provider_for_model(model_name)
-        if not provider:
-            # Get list of available models for error message
-            available_models = list(ModelProviderRegistry.get_available_models(respect_restrictions=True).keys())
-            tool_category = tool.get_model_category()
-            suggested_model = ModelProviderRegistry.get_preferred_fallback_model(tool_category)
-
-            error_message = (
-                f"Model '{model_name}' is not available with current API keys. "
-                f"Available models: {', '.join(available_models)}. "
-                f"Suggested model for {name}: '{suggested_model}' "
-                f"(category: {tool_category.value})"
-            )
-            error_output = ToolOutput(
-                status="error",
-                content=error_message,
-                content_type="text",
-                metadata={"tool_name": name, "requested_model": model_name},
-            )
-            return [TextContent(type="text", text=error_output.model_dump_json())]
+        # Skip validation at MCP boundary to allow tools to handle fallback
+        # The tools themselves will handle fallback to GPT-5 if model is not available
+        # provider = ModelProviderRegistry.get_provider_for_model(model_name)
+        # if not provider:
+        #     # Get list of available models for error message
+        #     available_models = list(ModelProviderRegistry.get_available_models(respect_restrictions=True).keys())
+        #     tool_category = tool.get_model_category()
+        #     suggested_model = ModelProviderRegistry.get_preferred_fallback_model(tool_category)
+        #
+        #     error_message = (
+        #         f"Model '{model_name}' is not available with current API keys. "
+        #         f"Available models: {', '.join(available_models)}. "
+        #         f"Suggested model for {name}: '{suggested_model}' "
+        #         f"(category: {tool_category.value})"
+        #     )
+        #     error_output = ToolOutput(
+        #         status="error",
+        #         content=error_message,
+        #         content_type="text",
+        #         metadata={"tool_name": name, "requested_model": model_name},
+        #     )
+        #     return [TextContent(type="text", text=error_output.model_dump_json())]
 
         # Create model context with resolved model and option
+        # ModelContext will handle fallback to GPT-5 if needed
         model_context = ModelContext(model_name, model_option)
         arguments["_model_context"] = model_context
         arguments["_resolved_model_name"] = model_name

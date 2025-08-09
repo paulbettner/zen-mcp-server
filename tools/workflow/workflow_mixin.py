@@ -1479,10 +1479,13 @@ class BaseWorkflowMixin(ABC):
             for warning in temp_warnings:
                 logger.warning(warning)
 
+            # Use the actual model name (could be fallback)
+            actual_model = self._model_context.actual_model_name
+            
             # Generate AI response - use request parameters if available
             model_response = provider.generate_content(
                 prompt=prompt,
-                model_name=model_name,
+                model_name=actual_model,  # Use actual model (could be fallback)
                 system_prompt=system_prompt,
                 temperature=validated_temperature,
                 thinking_mode=self.get_request_thinking_mode(request),
@@ -1494,14 +1497,27 @@ class BaseWorkflowMixin(ABC):
                 try:
                     # Try to parse as JSON
                     analysis_result = json.loads(model_response.content.strip())
+                    
+                    # Add fallback warning if applicable
+                    if self._model_context.fallback_warning:
+                        analysis_result["model_fallback_warning"] = self._model_context.fallback_warning
+                        logger.warning(f"Workflow tool: {self._model_context.fallback_warning}")
+                    
                     return analysis_result
                 except json.JSONDecodeError:
                     # Return as text if not valid JSON
-                    return {
+                    result = {
                         "status": "analysis_complete",
                         "raw_analysis": model_response.content,
                         "parse_error": "Response was not valid JSON",
                     }
+                    
+                    # Add fallback warning if applicable
+                    if self._model_context.fallback_warning:
+                        result["model_fallback_warning"] = self._model_context.fallback_warning
+                        logger.warning(f"Workflow tool: {self._model_context.fallback_warning}")
+                    
+                    return result
             else:
                 return {"error": "No response from model", "status": "empty_response"}
 

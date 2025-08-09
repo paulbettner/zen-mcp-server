@@ -439,30 +439,55 @@ class BaseTool(ABC):
 
         logger.debug(f"{self.name} tool {content_type.lower()} token validation passed: {token_count:,} tokens")
 
-    def get_model_provider(self, model_name: str) -> ModelProvider:
+    def get_model_provider(self, model_name: str) -> tuple[ModelProvider, Optional[str]]:
         """
-        Get the appropriate model provider for the given model name.
+        Get the appropriate model provider for the given model name, with fallback to GPT-5.
 
         This method performs runtime validation to ensure the requested model
-        is actually available with the current API key configuration.
+        is actually available with the current API key configuration. If the model
+        is not available, it falls back to GPT-5 with high reasoning and returns
+        a warning message.
 
         Args:
             model_name: Name of the model to get provider for
 
         Returns:
-            ModelProvider: The provider instance for the model
+            tuple: (ModelProvider instance, Optional warning message about fallback)
 
         Raises:
-            ValueError: If the model is not available or provider not found
+            ValueError: Only if fallback model is also not available
         """
         try:
             provider = ModelProviderRegistry.get_provider_for_model(model_name)
             if not provider:
-                logger.error(f"No provider found for model '{model_name}' in {self.name} tool")
-                available_models = ModelProviderRegistry.get_available_models()
-                raise ValueError(f"Model '{model_name}' is not available. Available models: {available_models}")
+                # Model not found - try fallback to GPT-5 or first available model
+                logger.warning(f"Model '{model_name}' not available in {self.name} tool, attempting fallback")
+                
+                # Try GPT-5 first
+                fallback_model = "gpt-5"
+                fallback_provider = ModelProviderRegistry.get_provider_for_model(fallback_model)
+                
+                # If GPT-5 not available, try other common models
+                if not fallback_provider:
+                    for fallback_model in ["o3", "pro", "gemini-2.5-pro"]:
+                        fallback_provider = ModelProviderRegistry.get_provider_for_model(fallback_model)
+                        if fallback_provider:
+                            break
+                
+                if fallback_provider:
+                    available_models = ModelProviderRegistry.get_available_models()
+                    warning_msg = (
+                        f"⚠️ Model '{model_name}' is not available. Using {fallback_model} with maximum reasoning instead. "
+                        f"Available models: {', '.join(sorted(available_models.keys())[:10])}..."
+                    )
+                    return fallback_provider, warning_msg
+                else:
+                    # Even fallback failed - raise original error
+                    logger.error(f"No provider found for model '{model_name}' or fallback in {self.name} tool")
+                    available_models = ModelProviderRegistry.get_available_models()
+                    raise ValueError(f"Model '{model_name}' is not available. Available models: {available_models}")
 
-            return provider
+            return provider, None  # No warning, model found successfully
         except Exception as e:
             logger.error(f"Failed to get provider for model '{model_name}' in {self.name} tool: {e}")
             raise

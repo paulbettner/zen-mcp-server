@@ -50,6 +50,9 @@ class ToolOutput(BaseModel):
     continuation_offer: Optional[ContinuationOffer] = Field(
         None, description="Optional offer for Agent to continue conversation"
     )
+    model_fallback_warning: Optional[str] = Field(
+        None, description="Warning message when model fallback occurred"
+    )
 
 
 class FilesNeededRequest(BaseModel):
