@@ -24,11 +24,11 @@ class OpenAIModelProvider(OpenAICompatibleProvider):
     SUPPORTED_MODELS = {
         "gpt-5": ModelCapabilities(
             provider=ProviderType.OPENAI,
-            model_name="gpt-5",
+            model_name="gpt-5",  # Use base model name for v1/responses endpoint support
             friendly_name="OpenAI (GPT-5)",
             context_window=400_000,  # 400K tokens
             max_output_tokens=128_000,  # 128K max output tokens
-            supports_extended_thinking=True,  # Supports reasoning tokens
+            supports_extended_thinking=True,  # Supports reasoning tokens via v1/responses
             supports_system_prompts=True,
             supports_streaming=True,
             supports_function_calling=True,
@@ -37,8 +37,26 @@ class OpenAIModelProvider(OpenAICompatibleProvider):
             max_image_size_mb=20.0,  # 20MB per OpenAI docs
             supports_temperature=True,  # Regular models accept temperature parameter
             temperature_constraint=create_temperature_constraint("fixed"),
-            description="GPT-5 (400K context, 128K output) - Advanced model with reasoning support",
-            aliases=["gpt5", "gpt-5"],
+            description="GPT-5 (400K context, 128K output) - Advanced model with reasoning support via v1/responses",
+            aliases=["gpt5"],
+        ),
+        "gpt-5-chat-latest": ModelCapabilities(
+            provider=ProviderType.OPENAI,
+            model_name="gpt-5-chat-latest",  # Chat-optimized variant uses v1/chat/completions
+            friendly_name="OpenAI (GPT-5 Chat)",
+            context_window=400_000,  # 400K tokens
+            max_output_tokens=128_000,  # 128K max output tokens
+            supports_extended_thinking=False,  # Chat variant doesn't support v1/responses
+            supports_system_prompts=True,
+            supports_streaming=True,
+            supports_function_calling=True,
+            supports_json_mode=True,
+            supports_images=True,  # GPT-5 supports vision
+            max_image_size_mb=20.0,  # 20MB per OpenAI docs
+            supports_temperature=True,  # Regular models accept temperature parameter
+            temperature_constraint=create_temperature_constraint("fixed"),
+            description="GPT-5 Chat (400K context, 128K output) - Chat-optimized variant",
+            aliases=["gpt-5-chat", "chat-latest"],
         ),
         "gpt-5-mini": ModelCapabilities(
             provider=ProviderType.OPENAI,
@@ -129,6 +147,24 @@ class OpenAIModelProvider(OpenAICompatibleProvider):
             temperature_constraint=create_temperature_constraint("fixed"),
             description="Professional-grade reasoning (200K context) - EXTREMELY EXPENSIVE: Only for the most complex problems requiring universe-scale complexity analysis OR when the user explicitly asks for this model. Use sparingly for critical architectural decisions or exceptionally complex debugging that other models cannot handle.",
             aliases=["o3-pro"],
+        ),
+        "o3-deep-research": ModelCapabilities(
+            provider=ProviderType.OPENAI,
+            model_name="o3-deep-research",
+            friendly_name="OpenAI (O3-Deep-Research)",
+            context_window=200_000,  # 200K tokens
+            max_output_tokens=65536,  # 64K max output tokens
+            supports_extended_thinking=True,  # Deep research mode supports extended thinking
+            supports_system_prompts=True,
+            supports_streaming=True,
+            supports_function_calling=True,
+            supports_json_mode=True,
+            supports_images=True,  # O3 models support vision
+            max_image_size_mb=20.0,  # 20MB per OpenAI docs
+            supports_temperature=False,  # O3 models don't accept temperature parameter
+            temperature_constraint=create_temperature_constraint("fixed"),
+            description="Deep research reasoning (200K context) - Advanced model for complex research tasks requiring deep investigation and analysis",
+            aliases=["o3-deep", "deep-research"],
         ),
         "o4-mini": ModelCapabilities(
             provider=ProviderType.OPENAI,
@@ -246,11 +282,18 @@ class OpenAIModelProvider(OpenAICompatibleProvider):
         """Generate content using OpenAI API with proper model name resolution."""
         # Resolve model alias before making API call
         resolved_model_name = self._resolve_model_name(model_name)
+        
+        # Get the actual API model name from capabilities
+        if resolved_model_name in self.SUPPORTED_MODELS:
+            capabilities = self.SUPPORTED_MODELS[resolved_model_name]
+            api_model_name = capabilities.model_name
+        else:
+            api_model_name = resolved_model_name
 
-        # Call parent implementation with resolved model name
+        # Call parent implementation with the actual API model name
         return super().generate_content(
             prompt=prompt,
-            model_name=resolved_model_name,
+            model_name=api_model_name,
             system_prompt=system_prompt,
             temperature=temperature,
             max_output_tokens=max_output_tokens,

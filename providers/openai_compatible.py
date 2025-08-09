@@ -339,7 +339,7 @@ class OpenAICompatibleProvider(ModelProvider):
         max_output_tokens: Optional[int] = None,
         **kwargs,
     ) -> ModelResponse:
-        """Generate content using the /v1/responses endpoint for o3-pro via OpenAI library."""
+        """Generate content using the /v1/responses endpoint for ALL OpenAI models with MAXIMUM reasoning effort."""
         # Convert messages to the correct format for responses endpoint
         input_messages = []
 
@@ -361,9 +361,27 @@ class OpenAICompatibleProvider(ModelProvider):
         completion_params = {
             "model": model_name,
             "input": input_messages,
-            "reasoning": {"effort": "medium"},  # Use nested object for responses endpoint
             "store": True,
         }
+        
+        # Configure reasoning effort - ALWAYS USE MAXIMUM LEVELS
+        if model_name == "o3-deep-research":
+            # O3-deep-research only supports medium effort (which is its maximum) and requires tools
+            completion_params["reasoning"] = {"effort": "medium"}  # This IS the maximum for o3-deep-research
+            completion_params["tools"] = [{"type": "web_search_preview"}]
+        elif model_name in ["o3", "o3-mini", "o3-pro"]:
+            # Use HIGH effort for maximum reasoning (the highest available)
+            completion_params["reasoning"] = {"effort": "high"}  # MAXIMUM reasoning effort
+        elif model_name == "gpt-5-chat-latest":
+            # GPT-5-chat-latest doesn't support reasoning.effort parameter
+            # It will automatically use its reasoning capabilities
+            pass
+        elif model_name == "gpt-5" or model_name.startswith("gpt-5"):
+            # GPT-5 base model supports high effort
+            completion_params["reasoning"] = {"effort": "high"}  # Maximum reasoning
+        else:
+            # For any other OpenAI model, default to high effort
+            completion_params["reasoning"] = {"effort": "high"}
 
         # Add max tokens if specified (using max_completion_tokens for responses endpoint)
         if max_output_tokens:
@@ -384,7 +402,7 @@ class OpenAICompatibleProvider(ModelProvider):
 
                 sanitized_params = self._sanitize_for_logging(completion_params)
                 logging.info(
-                    f"o3-pro API request (sanitized): {json.dumps(sanitized_params, indent=2, ensure_ascii=False)}"
+                    f"OpenAI v1/responses API request with MAX reasoning (sanitized): {json.dumps(sanitized_params, indent=2, ensure_ascii=False)}"
                 )
 
                 # Use OpenAI client's responses endpoint
@@ -431,14 +449,14 @@ class OpenAICompatibleProvider(ModelProvider):
                 if is_retryable and attempt < max_retries - 1:
                     delay = retry_delays[attempt]
                     logging.warning(
-                        f"Retryable error for o3-pro responses endpoint, attempt {actual_attempts}/{max_retries}: {str(e)}. Retrying in {delay}s..."
+                        f"Retryable error for OpenAI responses endpoint, attempt {actual_attempts}/{max_retries}: {str(e)}. Retrying in {delay}s..."
                     )
                     time.sleep(delay)
                 else:
                     break
 
         # If we get here, all retries failed
-        error_msg = f"o3-pro responses endpoint error after {actual_attempts} attempt{'s' if actual_attempts > 1 else ''}: {str(last_exception)}"
+        error_msg = f"OpenAI responses endpoint error after {actual_attempts} attempt{'s' if actual_attempts > 1 else ''}: {str(last_exception)}"
         logging.error(error_msg)
         raise RuntimeError(error_msg) from last_exception
 
@@ -539,9 +557,24 @@ class OpenAICompatibleProvider(ModelProvider):
                     continue  # Skip unsupported parameters for reasoning models
                 completion_params[key] = value
 
-        # Check if this is o3-pro and needs the responses endpoint
-        if resolved_model == "o3-pro":
-            # This model requires the /v1/responses endpoint
+        # Check if this is an OpenAI model that should use v1/responses endpoint
+        # ALL OpenAI models should use responses endpoint for maximum reasoning
+        openai_models = [
+            "gpt-5", "gpt-5-chat-latest", "gpt-5-mini", "gpt-5-nano",
+            "o3", "o3-mini", "o3-pro", "o3-deep-research",
+            "o4-mini", "gpt-4.1"
+        ]
+        
+        # Check if this is from OpenAI provider
+        is_openai = (
+            resolved_model in openai_models or
+            resolved_model.startswith("gpt-") or
+            resolved_model.startswith("o3") or
+            resolved_model.startswith("o4")
+        )
+        
+        if is_openai and self.get_provider_type() == ProviderType.OPENAI:
+            # These models benefit from or require the /v1/responses endpoint
             # If it fails, we should not fall back to chat/completions
             return self._generate_with_responses_endpoint(
                 model_name=resolved_model,

@@ -112,11 +112,12 @@ class ListModelsTool(BaseTool):
 
                 # Get models from the provider's model configurations, filtered by restrictions
                 from utils.model_restrictions import get_restriction_service
+
                 restriction_service = get_restriction_service()
-                
+
                 all_models = provider.get_model_configurations()
                 displayed_models = []
-                
+
                 for model_name, capabilities in all_models.items():
                     # Check if model is allowed
                     if restriction_service.is_allowed(provider_type, model_name):
@@ -252,9 +253,9 @@ class ListModelsTool(BaseTool):
 
             try:
                 # Check if custom models are restricted
-                from utils.model_restrictions import get_restriction_service
                 from providers.base import ProviderType
-                
+                from utils.model_restrictions import get_restriction_service
+
                 restriction_service = get_restriction_service()
                 if restriction_service.has_restrictions(ProviderType.CUSTOM):
                     allowed_set = restriction_service.get_allowed_models(ProviderType.CUSTOM)
