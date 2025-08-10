@@ -437,14 +437,22 @@ class BaseTool(ABC):
         """
         # Get the actual model's context window from model context
         if hasattr(self, '_model_context') and self._model_context:
-            # Use actual model context window
-            context_window = self._model_context.capabilities.context_window
-            # Reserve 20% for response generation
-            available_for_input = int(context_window * 0.8)
+            try:
+                # Use actual model context window
+                context_window = self._model_context.capabilities.context_window
+                if context_window and context_window > 0:
+                    # Reserve 20% for response generation
+                    available_for_input = int(context_window * 0.8)
+                else:
+                    # Invalid context window, use default
+                    available_for_input = 200_000  # Conservative default
+            except (AttributeError, TypeError):
+                # Error getting capabilities, use default
+                available_for_input = 200_000  # Conservative default
         else:
             # Fallback to conservative default if model context not available
             available_for_input = 200_000  # Conservative default
-            
+
         is_valid, token_count = check_token_limit(content, available_for_input)
         if not is_valid:
             error_msg = f"~{token_count:,} tokens. Maximum for this model is {available_for_input:,} tokens."
@@ -476,18 +484,18 @@ class BaseTool(ABC):
             if not provider:
                 # Model not found - try fallback to GPT-5 or first available model
                 logger.warning(f"Model '{model_name}' not available in {self.name} tool, attempting fallback")
-                
+
                 # Try GPT-5 first
                 fallback_model = "gpt-5"
                 fallback_provider = ModelProviderRegistry.get_provider_for_model(fallback_model)
-                
+
                 # If GPT-5 not available, try other common models
                 if not fallback_provider:
                     for fallback_model in ["o3", "pro", "gemini-2.5-pro"]:
                         fallback_provider = ModelProviderRegistry.get_provider_for_model(fallback_model)
                         if fallback_provider:
                             break
-                
+
                 if fallback_provider:
                     available_models = ModelProviderRegistry.get_available_models()
                     warning_msg = (

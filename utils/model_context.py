@@ -77,18 +77,18 @@ class ModelContext:
             if not self._provider:
                 # Model not found - try fallback to GPT-5 or first available model
                 logger.warning(f"Model '{self.model_name}' not available, attempting fallback with maximum reasoning")
-                
+
                 # Try GPT-5 first
                 fallback_model = "gpt-5"
                 self._provider = ModelProviderRegistry.get_provider_for_model(fallback_model)
-                
+
                 # If GPT-5 not available, try other common models
                 if not self._provider:
                     for fallback_model in ["o3", "pro", "gemini-2.5-pro"]:
                         self._provider = ModelProviderRegistry.get_provider_for_model(fallback_model)
                         if self._provider:
                             break
-                
+
                 if self._provider:
                     # Update actual model name and set warning
                     self.actual_model_name = fallback_model

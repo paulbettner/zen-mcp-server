@@ -3,7 +3,9 @@
 
 import os
 import sys
+
 from openai import OpenAI
+
 
 def test_o3_deep_research():
     """Test o3-deep-research with the responses endpoint."""
@@ -11,12 +13,12 @@ def test_o3_deep_research():
     if not api_key:
         print("❌ OPENAI_API_KEY not set")
         return False
-    
+
     print("Testing O3-Deep-Research with v1/responses endpoint")
     print("=" * 60)
-    
+
     client = OpenAI(api_key=api_key)
-    
+
     try:
         # Use the responses endpoint directly with web_search_preview tool
         print("Calling o3-deep-research via responses.create() with web_search_preview tool...")
@@ -37,10 +39,10 @@ def test_o3_deep_research():
             store=True,
             tools=[{"type": "web_search_preview"}]  # Required for deep research models
         )
-        
+
         print("✅ SUCCESS: o3-deep-research is working!")
         print(f"Response ID: {response.id}")
-        
+
         # Extract the output
         if hasattr(response, 'output') and response.output:
             for item in response.output:
@@ -49,10 +51,10 @@ def test_o3_deep_research():
                         if content_item.type == 'output_text':
                             print(f"Response: {content_item.text}")
                             return True
-        
+
         print("⚠️  Got response but couldn't extract output")
         return False
-        
+
     except Exception as e:
         print(f"❌ Error: {e}")
         return False

@@ -18,9 +18,9 @@ def call_mcp_server(tool_name, arguments):
             'clientInfo': {'name': 'test-client', 'version': '1.0.0'},
         },
     }
-    
+
     initialized_notification = {'jsonrpc': '2.0', 'method': 'notifications/initialized'}
-    
+
     tool_request = {
         'jsonrpc': '2.0',
         'id': 2,
@@ -30,15 +30,15 @@ def call_mcp_server(tool_name, arguments):
             'arguments': arguments
         },
     }
-    
+
     messages = [
         json.dumps(init_request),
         json.dumps(initialized_notification),
         json.dumps(tool_request),
     ]
-    
+
     input_data = '\n'.join(messages) + '\n'
-    
+
     result = subprocess.run(
         [sys.executable, 'server.py'],
         input=input_data,
@@ -46,7 +46,7 @@ def call_mcp_server(tool_name, arguments):
         capture_output=True,
         timeout=60,
     )
-    
+
     lines = result.stdout.strip().split('\n')
     for line in lines:
         if line.strip() and line.startswith('{'):
@@ -64,7 +64,7 @@ def test_invalid_model_fallback(tool_name, invalid_model):
     print(f"\n{'='*70}")
     print(f"Testing {tool_name} with invalid model: '{invalid_model}'")
     print("-" * 70)
-    
+
     # Prepare arguments based on tool
     if tool_name == "chat":
         arguments = {
@@ -110,55 +110,55 @@ def test_invalid_model_fallback(tool_name, invalid_model):
     else:
         print(f"⚠️  Unknown tool: {tool_name}")
         return False
-    
+
     response = call_mcp_server(tool_name, arguments)
-    
+
     if response and 'result' in response:
         result = response['result']
         if 'content' in result and len(result['content']) > 0:
             content = result['content'][0].get('text', '')
             try:
                 tool_response = json.loads(content)
-                
+
                 # Check for fallback warning
                 if 'model_fallback_warning' in tool_response:
-                    print(f"✅ FALLBACK WORKED!")
+                    print("✅ FALLBACK WORKED!")
                     print(f"   Warning: {tool_response['model_fallback_warning'][:150]}...")
-                    
+
                     # Check if actual model is GPT-5
                     metadata = tool_response.get('metadata', {})
                     model_used = metadata.get('model_used', metadata.get('model_name', 'unknown'))
                     print(f"   Model used: {model_used}")
-                    
+
                     if 'gpt-5' in model_used.lower():
-                        print(f"   ✅ Correctly fell back to GPT-5")
+                        print("   ✅ Correctly fell back to GPT-5")
                         return True
                     else:
                         print(f"   ❌ Expected GPT-5 but got: {model_used}")
                         return False
-                        
+
                 # Check if error mentions model not available
                 elif 'error' in tool_response:
                     error_msg = str(tool_response['error'])
                     if 'not available' in error_msg:
-                        print(f"❌ FALLBACK FAILED - Got error instead of fallback")
+                        print("❌ FALLBACK FAILED - Got error instead of fallback")
                         print(f"   Error: {error_msg[:200]}")
                         return False
-                        
+
                 # Success without warning might mean the model exists
                 else:
-                    print(f"⚠️  No fallback warning - model might exist?")
+                    print("⚠️  No fallback warning - model might exist?")
                     metadata = tool_response.get('metadata', {})
                     model_used = metadata.get('model_used', metadata.get('model_name', 'unknown'))
                     print(f"   Model used: {model_used}")
                     return None
-                    
+
             except json.JSONDecodeError:
-                print(f"❌ Could not parse response as JSON")
+                print("❌ Could not parse response as JSON")
                 print(f"   Response: {content[:200]}")
                 return False
     else:
-        print(f"❌ No valid response from server")
+        print("❌ No valid response from server")
         if response and 'error' in response:
             print(f"   Error: {response['error']}")
         return False
@@ -168,7 +168,7 @@ def main():
     print("MODEL FALLBACK MECHANISM TEST")
     print("=" * 80)
     print("Testing that invalid models fall back to GPT-5 with maximum reasoning")
-    
+
     # Test various invalid model names
     invalid_models = [
         "flash",           # Model mentioned in user's example
@@ -177,39 +177,39 @@ def main():
         "claude-3",       # Not available
         "o1-preview",     # Old model not in list
     ]
-    
+
     # Test with different tools
     tools_to_test = ["chat", "thinkdeep", "consensus", "debug", "analyze"]
-    
+
     results = {}
-    
+
     for tool in tools_to_test:
         print(f"\n{'='*80}")
         print(f"Testing {tool.upper()} Tool")
         print("=" * 80)
-        
+
         for model in invalid_models:
             result = test_invalid_model_fallback(tool, model)
             results[f"{tool}:{model}"] = result
-            
+
             # Small delay between tests
             import time
             time.sleep(0.5)
-    
+
     # Summary
     print("\n" + "=" * 80)
     print("TEST SUMMARY")
     print("=" * 80)
-    
+
     passed = sum(1 for r in results.values() if r is True)
     failed = sum(1 for r in results.values() if r is False)
     uncertain = sum(1 for r in results.values() if r is None)
-    
+
     print(f"\nPassed: {passed}/{len(results)}")
     print(f"Failed: {failed}/{len(results)}")
     if uncertain > 0:
         print(f"Uncertain: {uncertain}/{len(results)}")
-    
+
     # Details
     if failed > 0:
         print("\nFailed tests:")
@@ -217,12 +217,12 @@ def main():
             if result is False:
                 tool, model = key.split(':')
                 print(f"  - {tool} with '{model}'")
-    
+
     if passed == len(results):
         print("\n🎉 SUCCESS: All invalid models correctly fall back to GPT-5!")
     else:
-        print(f"\n⚠️  Some tests failed - fallback mechanism may need adjustment")
-        
+        print("\n⚠️  Some tests failed - fallback mechanism may need adjustment")
+
     sys.exit(0 if passed == len(results) else 1)
 
 

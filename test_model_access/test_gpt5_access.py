@@ -5,6 +5,7 @@ import json
 import subprocess
 import sys
 
+
 def call_mcp_server(tool_name, arguments):
     """Call the MCP server with a tool request."""
     init_request = {
@@ -17,9 +18,9 @@ def call_mcp_server(tool_name, arguments):
             'clientInfo': {'name': 'test-client', 'version': '1.0.0'},
         },
     }
-    
+
     initialized_notification = {'jsonrpc': '2.0', 'method': 'notifications/initialized'}
-    
+
     tool_request = {
         'jsonrpc': '2.0',
         'id': 2,
@@ -29,15 +30,15 @@ def call_mcp_server(tool_name, arguments):
             'arguments': arguments
         },
     }
-    
+
     messages = [
         json.dumps(init_request),
         json.dumps(initialized_notification),
         json.dumps(tool_request),
     ]
-    
+
     input_data = '\n'.join(messages) + '\n'
-    
+
     result = subprocess.run(
         [sys.executable, 'server.py'],
         input=input_data,
@@ -45,7 +46,7 @@ def call_mcp_server(tool_name, arguments):
         capture_output=True,
         timeout=60,
     )
-    
+
     lines = result.stdout.strip().split('\n')
     for line in lines:
         if line.strip() and line.startswith('{'):
@@ -63,7 +64,7 @@ def test_model(model_name):
         'prompt': f'Testing {model_name} - just say OK',
         'model': model_name
     })
-    
+
     if response and 'result' in response:
         result = response['result']
         if 'content' in result and len(result['content']) > 0:
@@ -87,16 +88,16 @@ def test_model(model_name):
 def main():
     print("Testing GPT-5 Model Access")
     print("=" * 60)
-    
+
     # Test main model names
     models_to_test = ['gpt-5', 'gpt5', 'GPT-5', 'gpt-5-mini', 'gpt5-mini']
-    
+
     for model in models_to_test:
         print(f"\nTesting model: {model}")
         print("-" * 40)
-        
+
         success, message = test_model(model)
-        
+
         if success is True:
             print(f"✅ Model {model} is ACCESSIBLE! (resolved to: {message})")
         elif success is False:
@@ -107,12 +108,12 @@ def main():
                 print(f"❌ Model {model} failed with error: {message[:200]}")
         else:
             print(f"⚠️  Model {model}: {message}")
-    
+
     # Check what models are available
     print("\n" + "=" * 60)
     print("Checking available models via listmodels...")
     print("-" * 40)
-    
+
     response = call_mcp_server('listmodels', {'model': 'dummy'})
     if response and 'result' in response:
         result = response['result']
@@ -122,7 +123,7 @@ def main():
             try:
                 models_response = json.loads(content)
                 models_content = models_response.get('content', '')
-                
+
                 # Check if gpt-5 is mentioned
                 if 'gpt-5' in models_content.lower() or 'gpt5' in models_content.lower():
                     print("✅ GPT-5 is listed in available models!")

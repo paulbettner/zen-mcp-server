@@ -282,7 +282,7 @@ class OpenAIModelProvider(OpenAICompatibleProvider):
         """Generate content using OpenAI API with proper model name resolution."""
         # Resolve model alias before making API call
         resolved_model_name = self._resolve_model_name(model_name)
-        
+
         # Get the actual API model name from capabilities
         if resolved_model_name in self.SUPPORTED_MODELS:
             capabilities = self.SUPPORTED_MODELS[resolved_model_name]

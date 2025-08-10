@@ -430,7 +430,7 @@ class SimpleTool(BaseTool):
 
             # Use the actual model name (could be fallback)
             actual_model = self._model_context.actual_model_name
-            
+
             # Generate content with provider abstraction
             model_response = provider.generate_content(
                 prompt=prompt,
@@ -456,12 +456,12 @@ class SimpleTool(BaseTool):
 
                 # Parse response using the same logic as old base.py
                 tool_output = self._parse_response(raw_text, request, model_info)
-                
+
                 # Add fallback warning if applicable
                 if self._model_context.fallback_warning:
                     tool_output.model_fallback_warning = self._model_context.fallback_warning
                     logger.warning(f"{self.get_name()}: {self._model_context.fallback_warning}")
-                
+
                 logger.info(f"✅ {self.get_name()} tool completed successfully")
 
             else:

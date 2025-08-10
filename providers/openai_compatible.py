@@ -363,7 +363,7 @@ class OpenAICompatibleProvider(ModelProvider):
             "input": input_messages,
             "store": True,
         }
-        
+
         # Configure reasoning effort - ALWAYS USE MAXIMUM LEVELS
         if model_name == "o3-deep-research":
             # O3-deep-research only supports medium effort (which is its maximum) and requires tools
@@ -564,7 +564,7 @@ class OpenAICompatibleProvider(ModelProvider):
             "o3", "o3-mini", "o3-pro", "o3-deep-research",
             "o4-mini", "gpt-4.1"
         ]
-        
+
         # Check if this is from OpenAI provider
         is_openai = (
             resolved_model in openai_models or
@@ -572,7 +572,7 @@ class OpenAICompatibleProvider(ModelProvider):
             resolved_model.startswith("o3") or
             resolved_model.startswith("o4")
         )
-        
+
         if is_openai and self.get_provider_type() == ProviderType.OPENAI:
             # These models benefit from or require the /v1/responses endpoint
             # If it fails, we should not fall back to chat/completions

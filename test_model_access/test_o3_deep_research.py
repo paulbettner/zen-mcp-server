@@ -2,7 +2,7 @@
 """Test o3-deep-research model availability."""
 
 import os
-import sys
+
 from openai import OpenAI
 
 # Temporarily disable restrictions for this test
@@ -40,13 +40,13 @@ def main():
     if not api_key:
         print("❌ OPENAI_API_KEY not set")
         return
-    
+
     print("Testing O3-Deep-Research Model Availability")
     print("=" * 60)
-    
+
     # Create client
     client = OpenAI(api_key=api_key)
-    
+
     # Test various o3-deep-research variations
     models_to_test = [
         "o3-deep-research",
@@ -54,28 +54,28 @@ def main():
         "deep-research",
         "o3-deep-research-2025-08-07",  # Try dated version
     ]
-    
+
     results = {}
-    
+
     for model in models_to_test:
         print(f"\nTesting model: {model}")
         print("-" * 40)
-        
+
         available, message = test_model_availability(client, model)
         results[model] = available
-        
+
         if available is True:
             print(f"✅ {model}: AVAILABLE - {message}")
         elif available is False:
             print(f"❌ {model}: NOT AVAILABLE - {message}")
         else:
             print(f"⚠️  {model}: UNKNOWN - {message}")
-    
+
     # Summary
     print("\n" + "=" * 60)
     print("SUMMARY")
     print("-" * 40)
-    
+
     available_models = [m for m, v in results.items() if v is True]
     if available_models:
         print(f"✅ Available O3-Deep-Research models: {', '.join(available_models)}")

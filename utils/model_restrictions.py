@@ -62,21 +62,21 @@ class ModelRestrictionService:
             # OpenAI models: gpt-5, o3, o3-pro, o3-deep-research
             self.restrictions[ProviderType.OPENAI] = {
                 "gpt-5", "gpt5", "gpt-5-chat-latest",  # GPT-5 and its aliases/actual model name
-                "o3", 
+                "o3",
                 "o3-pro", "o3-pro-2025-06-10",  # o3-pro and its full version
                 "o3-deep-research", "o3-deep", "deep-research"  # o3-deep-research and its aliases
             }
-            
+
             # Google models: gemini-2.5-pro
             self.restrictions[ProviderType.GOOGLE] = {
-                "gemini-2.5-pro", 
+                "gemini-2.5-pro",
                 "pro"  # "pro" is an alias for gemini-2.5-pro
             }
-            
+
             # OpenRouter models: Include OpenAI/Google models + Claude Opus 4.1
             self.restrictions[ProviderType.OPENROUTER] = {
                 "openai/gpt-5",
-                "openai/o3", 
+                "openai/o3",
                 "openai/o3-pro",
                 "openai/o3-deep-research",
                 "google/gemini-2.5-pro",

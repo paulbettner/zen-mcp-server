@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Quick test of the model fallback mechanism."""
 
+import json
 import os
 import sys
-import json
 from pathlib import Path
 
 # Load environment variables
@@ -14,27 +14,28 @@ if env_file.exists():
     print("✅ Loaded .env file")
 
 # Import after loading env
-from utils.model_context import ModelContext
 from providers import ModelProviderRegistry
+from utils.model_context import ModelContext
+
 
 def test_direct_context():
     """Test ModelContext fallback directly."""
     print("\n=== Testing ModelContext Fallback ===")
-    
+
     # Get available models
     available_models = ModelProviderRegistry.get_available_models()
     print(f"Available models: {len(available_models)}")
     if available_models:
         print(f"First 5: {', '.join(list(available_models.keys())[:5])}")
-    
+
     # Test with invalid model
     print("\nTesting with invalid model 'flash'...")
     try:
         ctx = ModelContext('flash')
         provider = ctx.provider
-        
+
         if ctx.fallback_warning:
-            print(f"✅ FALLBACK WORKS!")
+            print("✅ FALLBACK WORKS!")
             print(f"  Warning: {ctx.fallback_warning[:100]}...")
             print(f"  Actual model: {ctx.actual_model_name}")
         else:
@@ -45,9 +46,9 @@ def test_direct_context():
 def test_tool_fallback():
     """Test fallback through a tool."""
     print("\n=== Testing Tool Fallback (via MCP) ===")
-    
+
     import subprocess
-    
+
     # Prepare MCP protocol messages
     init_request = {
         'jsonrpc': '2.0',
@@ -59,9 +60,9 @@ def test_tool_fallback():
             'clientInfo': {'name': 'test-client', 'version': '1.0.0'},
         },
     }
-    
+
     initialized_notification = {'jsonrpc': '2.0', 'method': 'notifications/initialized'}
-    
+
     # Test with invalid model 'flash'
     tool_request = {
         'jsonrpc': '2.0',
@@ -76,17 +77,17 @@ def test_tool_fallback():
             }
         },
     }
-    
+
     messages = [
         json.dumps(init_request),
         json.dumps(initialized_notification),
         json.dumps(tool_request),
     ]
-    
+
     input_data = '\n'.join(messages) + '\n'
-    
+
     print("Running MCP server with invalid model...")
-    
+
     # Run the server with env loaded
     env = os.environ.copy()
     result = subprocess.run(
@@ -97,7 +98,7 @@ def test_tool_fallback():
         timeout=60,
         env=env
     )
-    
+
     # Parse response
     lines = result.stdout.strip().split('\n')
     for line in lines:
@@ -108,7 +109,7 @@ def test_tool_fallback():
                     if 'result' in response:
                         content = response['result']['content'][0]['text']
                         tool_response = json.loads(content)
-                        
+
                         if 'model_fallback_warning' in tool_response:
                             print('✅ FALLBACK WORKS IN TOOL!')
                             print(f'  Warning: {tool_response["model_fallback_warning"][:100]}...')
@@ -125,9 +126,9 @@ def test_tool_fallback():
                     elif 'error' in response:
                         print(f'❌ MCP Error: {response["error"]}')
                         return False
-            except Exception as e:
+            except Exception:
                 pass
-    
+
     print("❌ No valid response from server")
     if result.stderr:
         print(f"Stderr: {result.stderr[:200]}")
@@ -136,17 +137,17 @@ def test_tool_fallback():
 if __name__ == "__main__":
     print("MODEL FALLBACK TEST")
     print("=" * 50)
-    
+
     # Test direct ModelContext
     test_direct_context()
-    
+
     # Test through MCP tool
     success = test_tool_fallback()
-    
+
     print("\n" + "=" * 50)
     if success:
         print("✅ ALL TESTS PASSED!")
     else:
         print("⚠️ Some tests failed")
-    
+
     sys.exit(0 if success else 1)

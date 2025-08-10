@@ -2,9 +2,8 @@
 """Test which GPT-5 models are actually available via OpenAI API."""
 
 import os
-import sys
+
 from openai import OpenAI
-import httpx
 
 # Temporarily disable restrictions for this test
 os.environ["ZEN_MCP_TEST_MODE"] = "true"
@@ -39,43 +38,43 @@ def main():
     if not api_key:
         print("❌ OPENAI_API_KEY not set")
         return
-    
+
     print("Testing GPT-5 Model Availability via OpenAI API")
     print("=" * 60)
-    
+
     # Create client
     client = OpenAI(api_key=api_key)
-    
+
     # Models to test
     gpt5_models = [
         "gpt-5",
-        "gpt-5-mini", 
+        "gpt-5-mini",
         "gpt-5-nano",
         "gpt5",  # Test alias
         "gpt5-mini",  # Test alias
     ]
-    
+
     results = {}
-    
+
     for model in gpt5_models:
         print(f"\nTesting model: {model}")
         print("-" * 40)
-        
+
         available, message = test_model_availability(client, model)
         results[model] = available
-        
+
         if available is True:
             print(f"✅ {model}: AVAILABLE - {message}")
         elif available is False:
             print(f"❌ {model}: NOT AVAILABLE - {message}")
         else:
             print(f"⚠️  {model}: UNKNOWN - {message}")
-    
+
     # Also test what models we can list
     print("\n" + "=" * 60)
     print("Attempting to list models via API...")
     print("-" * 40)
-    
+
     try:
         models_list = client.models.list()
         gpt5_found = []
@@ -83,7 +82,7 @@ def main():
             if "gpt-5" in model.id.lower() or "gpt5" in model.id.lower():
                 gpt5_found.append(model.id)
                 print(f"✅ Found GPT-5 model in list: {model.id}")
-        
+
         if not gpt5_found:
             print("❌ No GPT-5 models found in model list")
             print("\nSample of available models:")
@@ -93,12 +92,12 @@ def main():
                 print(f"  ... and {len(models_list.data) - 10} more")
     except Exception as e:
         print(f"⚠️  Could not list models: {e}")
-    
+
     # Summary
     print("\n" + "=" * 60)
     print("SUMMARY")
     print("-" * 40)
-    
+
     available_models = [m for m, v in results.items() if v is True]
     if available_models:
         print(f"✅ Available GPT-5 models: {', '.join(available_models)}")

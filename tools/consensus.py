@@ -510,11 +510,11 @@ of the evidence, even when it strongly points in one direction.""",
                 # Add metadata (since we're bypassing the base class metadata addition)
                 model_name = self.get_request_model_name(request)
                 provider, fallback_warning = self.get_model_provider(model_name)
-                
+
                 # Add fallback warning if model was not available
                 if fallback_warning:
                     response_data["model_fallback_warning"] = fallback_warning
-                    
+
                 response_data["metadata"] = {
                     "tool_name": self.get_name(),
                     "model_name": model_name,
@@ -533,7 +533,7 @@ of the evidence, even when it strongly points in one direction.""",
             # Get the provider for this model
             model_name = model_config["model"]
             provider, fallback_warning = self.get_model_provider(model_name)
-            
+
             # If model fell back, update the model name
             if fallback_warning:
                 actual_model = "gpt-5"
@@ -582,11 +582,11 @@ of the evidence, even when it strongly points in one direction.""",
                     "model_name": actual_model,
                 },
             }
-            
+
             # Add fallback warning to result if applicable
             if fallback_warning:
                 result["fallback_warning"] = fallback_warning
-                
+
             return result
 
         except Exception as e:
