@@ -1134,32 +1134,24 @@ When recommending searches, be specific about what information you need and why 
 
             # For tests: Check if we should require model selection (auto mode)
             if self._should_require_model_selection(model_name):
-                # Get suggested model based on tool category
-                from providers.registry import ModelProviderRegistry
-
-                tool_category = self.get_model_category()
-                suggested_model = ModelProviderRegistry.get_preferred_fallback_model(tool_category)
-
-                # Build error message based on why selection is required
+                # Only throw error for "auto" mode
+                # For unavailable models, let ModelContext handle fallback
                 if model_name.lower() == "auto":
+                    from providers.registry import ModelProviderRegistry
+                    
+                    tool_category = self.get_model_category()
+                    suggested_model = ModelProviderRegistry.get_preferred_fallback_model(tool_category)
+                    
                     error_message = (
                         f"Model parameter is required in auto mode. "
                         f"Suggested model for {self.get_name()}: '{suggested_model}' "
                         f"(category: {tool_category.value})"
                     )
-                else:
-                    # Model was specified but not available
-                    available_models = self._get_available_models()
+                    raise ValueError(error_message)
+                # For non-auto unavailable models, let ModelContext handle fallback
+                # Don't throw error here - ModelContext will handle it
 
-                    error_message = (
-                        f"Model '{model_name}' is not available with current API keys. "
-                        f"Available models: {', '.join(available_models)}. "
-                        f"Suggested model for {self.get_name()}: '{suggested_model}' "
-                        f"(category: {tool_category.value})"
-                    )
-                raise ValueError(error_message)
-
-            # Create model context for tests
+            # Create model context for tests - this will handle fallback if needed
             from utils.model_context import ModelContext
 
             model_context = ModelContext(model_name)
