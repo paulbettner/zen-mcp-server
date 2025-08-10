@@ -216,19 +216,12 @@ class BaseTool(ABC):
         Returns:
             bool: True if we should require model selection
         """
-        # Case 1: Model is explicitly "auto"
+        # Only require model selection for "auto" mode
+        # For unavailable models, we'll let the fallback mechanism handle it
         if model_name.lower() == "auto":
             return True
 
-        # Case 2: Requested model is not available
-        from providers.registry import ModelProviderRegistry
-
-        provider = ModelProviderRegistry.get_provider_for_model(model_name)
-        if not provider:
-            logger = logging.getLogger(f"tools.{self.name}")
-            logger.warning(f"Model '{model_name}' is not available with current API keys. Requiring model selection.")
-            return True
-
+        # Don't require selection for unavailable models - let fallback handle it
         return False
 
     def _get_available_models(self) -> list[str]:
@@ -1055,18 +1048,12 @@ When recommending searches, be specific about what information you need and why 
         Returns:
             bool: True if we should require model selection
         """
-        # Case 1: Model is explicitly "auto"
+        # Only require model selection for "auto" mode
+        # For unavailable models, we'll let the fallback mechanism handle it
         if model_name.lower() == "auto":
             return True
 
-        # Case 2: Requested model is not available
-        from providers.registry import ModelProviderRegistry
-
-        provider = ModelProviderRegistry.get_provider_for_model(model_name)
-        if not provider:
-            logger.warning(f"Model '{model_name}' is not available with current API keys. Requiring model selection.")
-            return True
-
+        # Don't require selection for unavailable models - let fallback handle it
         return False
 
     def _get_available_models(self) -> list[str]:
