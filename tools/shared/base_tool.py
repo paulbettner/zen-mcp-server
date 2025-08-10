@@ -422,22 +422,36 @@ class BaseTool(ABC):
 
     def _validate_token_limit(self, content: str, content_type: str = "Content") -> None:
         """
-        Validate that content doesn't exceed the MCP prompt size limit.
+        Validate that content doesn't exceed the model's actual context window.
+
+        This uses the actual model's context window size, not the MCP transport limit.
+        The MCP_PROMPT_SIZE_LIMIT is only for the initial user prompt transport,
+        not for the full context sent to models.
 
         Args:
             content: The content to validate
             content_type: Description of the content type for error messages
 
         Raises:
-            ValueError: If content exceeds size limit
+            ValueError: If content exceeds model's context window
         """
-        is_valid, token_count = check_token_limit(content, MCP_PROMPT_SIZE_LIMIT)
+        # Get the actual model's context window from model context
+        if hasattr(self, '_model_context') and self._model_context:
+            # Use actual model context window
+            context_window = self._model_context.capabilities.context_window
+            # Reserve 20% for response generation
+            available_for_input = int(context_window * 0.8)
+        else:
+            # Fallback to conservative default if model context not available
+            available_for_input = 200_000  # Conservative default
+            
+        is_valid, token_count = check_token_limit(content, available_for_input)
         if not is_valid:
-            error_msg = f"~{token_count:,} tokens. Maximum is {MCP_PROMPT_SIZE_LIMIT:,} tokens."
+            error_msg = f"~{token_count:,} tokens. Maximum for this model is {available_for_input:,} tokens."
             logger.error(f"{self.name} tool {content_type.lower()} validation failed: {error_msg}")
             raise ValueError(f"{content_type} too large: {error_msg}")
 
-        logger.debug(f"{self.name} tool {content_type.lower()} token validation passed: {token_count:,} tokens")
+        logger.debug(f"{self.name} tool {content_type.lower()} token validation passed: {token_count:,} tokens (limit: {available_for_input:,})")
 
     def get_model_provider(self, model_name: str) -> tuple[ModelProvider, Optional[str]]:
         """
@@ -848,7 +862,7 @@ class BaseTool(ABC):
                     reserve_tokens=reserve_tokens,
                     include_line_numbers=self.wants_line_numbers_by_default(),
                 )
-                self._validate_token_limit(file_content, context_description)
+                # No need to validate token limit here - read_files already respects max_tokens
                 content_parts.append(file_content)
 
                 # Track the expanded files as actually processed
