@@ -13,6 +13,13 @@ SERVER_DEFAULTS = {
     "thinking_mode": "high",
     "use_websearch": True,
     
+    # Tool-specific default models (override global default)
+    "tool_models": {
+        "debug": "gemini-2.5-pro",  # Debug benefits from Gemini's large context
+        "codereview": "gpt-5",
+        "analyze": "gpt-5",
+    },
+    
     # Messages to communicate to AI agents
     "enforcement_message": (
         "IMPORTANT: Always use these defaults unless the user EXPLICITLY "

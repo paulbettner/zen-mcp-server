@@ -195,8 +195,19 @@ class CodeReviewTool(WorkflowTool):
         return "codereview"
 
     def get_description(self) -> str:
+        try:
+            from config_defaults import SERVER_DEFAULTS
+            defaults_msg = (
+                f" [DEFAULTS: model={SERVER_DEFAULTS['model']}, "
+                f"thinking={SERVER_DEFAULTS['thinking_mode']}] "
+                f"{SERVER_DEFAULTS['enforcement_message']}"
+            )
+        except ImportError:
+            defaults_msg = ""
+            
         return (
-            "CODE REVIEW - Structured review with issue identification. "
+            "CODE REVIEW - Structured review with issue identification."
+            + defaults_msg + " "
             "Use for: security audits, performance analysis, code quality evaluation, anti-pattern detection. "
             "Review types: full, security, performance, quick. "
             "Identifies issues by severity and provides actionable feedback."

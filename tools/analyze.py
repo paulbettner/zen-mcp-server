@@ -174,8 +174,19 @@ class AnalyzeTool(WorkflowTool):
         return "analyze"
 
     def get_description(self) -> str:
+        try:
+            from config_defaults import SERVER_DEFAULTS
+            defaults_msg = (
+                f" [DEFAULTS: model={SERVER_DEFAULTS['model']}, "
+                f"thinking={SERVER_DEFAULTS['thinking_mode']}] "
+                f"{SERVER_DEFAULTS['enforcement_message']}"
+            )
+        except ImportError:
+            defaults_msg = ""
+            
         return (
-            "CODE ANALYSIS - Systematic evaluation with expert validation. "
+            "CODE ANALYSIS - Systematic evaluation with expert validation."
+            + defaults_msg + " "
             "Use for: architectural assessment, performance evaluation, security analysis, "
             "maintainability review, pattern detection, strategic planning. "
             "Enforces step-by-step investigation with evidence gathering between each step."

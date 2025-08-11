@@ -169,8 +169,22 @@ class DebugIssueTool(WorkflowTool):
         return "debug"
 
     def get_description(self) -> str:
+        try:
+            from config_defaults import SERVER_DEFAULTS
+            # Debug tool uses gemini-2.5-pro by default
+            default_model = SERVER_DEFAULTS.get('tool_models', {}).get('debug', 'gemini-2.5-pro')
+            defaults_msg = (
+                f" [DEFAULTS: model={default_model}, "
+                f"temp=0.2, "  # Debug uses analytical temperature
+                f"thinking={SERVER_DEFAULTS['thinking_mode']}] "
+                f"{SERVER_DEFAULTS['enforcement_message']}"
+            )
+        except ImportError:
+            defaults_msg = ""
+            
         return (
-            "DEBUG & ROOT CAUSE ANALYSIS - Use this tool to perform any kind of debugging, bug hunting, or issue tracking. "
+            "DEBUG & ROOT CAUSE ANALYSIS - Use this tool to perform any kind of debugging, bug hunting, or issue tracking."
+            + defaults_msg + " "
             "This tool guides you through a step-by-step investigation process where you:\n\n"
             "1. Start with step 1: describe the issue to investigate\n"
             "2. STOP and investigate using appropriate tools\n"
