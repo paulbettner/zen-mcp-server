@@ -139,9 +139,15 @@ class ThinkDeepTool(WorkflowTool):
     """
 
     name = "thinkdeep"
+    description = (
+        "INVESTIGATION & REASONING - Multi-stage workflow for complex problems. "
+        "Use for: architecture decisions, complex bugs, performance challenges, security analysis. "
+        "Provides systematic hypothesis testing with expert validation. "
+        "Modes: low (quick), medium (standard), high (complex/default), max (exhaustive)."
+    )
     
-    @property
-    def description(self):
+    def get_description(self) -> str:
+        """Override to add defaults to description."""
         try:
             from config_defaults import SERVER_DEFAULTS
             defaults_msg = (
@@ -152,13 +158,7 @@ class ThinkDeepTool(WorkflowTool):
         except ImportError:
             defaults_msg = ""
         
-        return (
-            "INVESTIGATION & REASONING - Multi-stage workflow for complex problems. "
-            "Use for: architecture decisions, complex bugs, performance challenges, security analysis. "
-            "Provides systematic hypothesis testing with expert validation. "
-            "Modes: low (quick), medium (standard), high (complex/default), max (exhaustive)."
-            + defaults_msg
-        )
+        return self.description + defaults_msg
 
     def __init__(self):
         """Initialize the ThinkDeep workflow tool"""
