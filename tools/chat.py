@@ -64,10 +64,14 @@ class ChatTool(SimpleTool):
         return "chat"
 
     def get_description(self) -> str:
+        from config_defaults import SERVER_DEFAULTS
         return (
             "CHAT & COLLABORATION - General conversation and thinking partner. "
+            f"[DEFAULTS: model={SERVER_DEFAULTS['model']}, temp={SERVER_DEFAULTS['temperature']}, "
+            f"thinking={SERVER_DEFAULTS['thinking_mode']}] "
             "Use for: brainstorming, second opinions, explanations, comparisons, development questions. "
-            "Perfect when you need to discuss ideas or validate approaches without structured workflow."
+            "Perfect when you need to discuss ideas or validate approaches without structured workflow. "
+            f"{SERVER_DEFAULTS['enforcement_message']}"
         )
 
     def get_system_prompt(self) -> str:
@@ -113,15 +117,17 @@ class ChatTool(SimpleTool):
             "model": self.get_model_field_schema(),
             "temperature": {
                 **SchemaBuilder._BASE_SCHEMAS["number_range"](0, 1),
-                "description": "Response creativity (0-1, default 0.5)",
+                "description": "Response creativity (0-1). DEFAULT: 0.5 (use default unless user explicitly requests like 'temperature 0.8')",
+                "default": 0.5,
             },
             "thinking_mode": {
                 "type": "string",
                 "enum": SchemaBuilder._ENUM_VALUES["thinking_mode"],
                 "description": (
                     "Thinking depth: minimal (0.5% of model max), low (8%), medium (33%), high (67%), "
-                    "max (100% of model max)"
+                    "max (100% of model max). DEFAULT: high (use default unless user explicitly requests like 'minimal thinking')"
                 ),
+                "default": "high",
             },
             "use_websearch": {
                 "type": "boolean",

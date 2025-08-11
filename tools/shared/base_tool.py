@@ -292,19 +292,26 @@ class BaseTool(ABC):
             Dict containing the model field JSON schema
         """
         from config import DEFAULT_MODEL
+        try:
+            from config_defaults import SERVER_DEFAULTS
+            default_model = SERVER_DEFAULTS.get("model", DEFAULT_MODEL)
+        except ImportError:
+            default_model = DEFAULT_MODEL
 
         # Use the centralized effective auto mode check
         if self.is_effective_auto_mode():
             # In auto mode, model is required but we use a compact reference
             return {
                 "type": "string",
-                "description": "AI model to use (see listmodels for available options)",
+                "description": f"AI model to use. DEFAULT: {default_model} (ALWAYS use {default_model} unless user explicitly requests another model like 'use o3' or 'try gemini')",
+                "default": default_model,
             }
         else:
             # Normal mode - model is optional with default
             return {
                 "type": "string",
-                "description": f"AI model to use (see listmodels for available options). Defaults to '{DEFAULT_MODEL}' if not specified.",
+                "description": f"AI model to use. DEFAULT: {default_model} (ALWAYS use {default_model} unless user explicitly requests another model). Defaults to '{DEFAULT_MODEL}' if not specified.",
+                "default": default_model,
             }
 
     def get_default_temperature(self) -> float:

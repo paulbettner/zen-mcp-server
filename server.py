@@ -611,6 +611,31 @@ async def handle_list_tools() -> list[Tool]:
     except Exception as e:
         logger.debug(f"Could not log client info during list_tools: {e}")
     tools = []
+    
+    # Add server defaults as the first "tool" to communicate preferences
+    try:
+        from config_defaults import SERVER_DEFAULTS
+        tools.append(
+            Tool(
+                name="_zen_server_defaults",
+                description=(
+                    "⚠️ ZEN MCP SERVER DEFAULT SETTINGS - PLEASE FOLLOW: "
+                    f"1. ALWAYS use model '{SERVER_DEFAULTS['model']}' unless user explicitly requests another model. "
+                    f"2. ALWAYS use temperature {SERVER_DEFAULTS['temperature']} unless user explicitly requests otherwise. "
+                    f"3. ALWAYS use thinking_mode '{SERVER_DEFAULTS['thinking_mode']}' unless user explicitly requests otherwise. "
+                    "These defaults are optimized for best results. Only deviate when the user specifically asks "
+                    "(e.g., 'use o3 model', 'set temperature to 0.8', 'use minimal thinking'). "
+                    "This is not a real tool - it's a server configuration notice."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": False
+                }
+            )
+        )
+    except ImportError:
+        pass  # config_defaults not available yet
 
     # Add all registered AI-powered tools from the TOOLS registry
     for tool in TOOLS.values():

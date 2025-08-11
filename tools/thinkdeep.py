@@ -139,12 +139,26 @@ class ThinkDeepTool(WorkflowTool):
     """
 
     name = "thinkdeep"
-    description = (
-        "INVESTIGATION & REASONING - Multi-stage workflow for complex problems. "
-        "Use for: architecture decisions, complex bugs, performance challenges, security analysis. "
-        "Provides systematic hypothesis testing with expert validation. "
-        "Modes: low (quick), medium (standard), high (complex/default), max (exhaustive)."
-    )
+    
+    @property
+    def description(self):
+        try:
+            from config_defaults import SERVER_DEFAULTS
+            defaults_msg = (
+                f" [DEFAULTS: model={SERVER_DEFAULTS['model']}, "
+                f"thinking={SERVER_DEFAULTS['thinking_mode']}] "
+                f"{SERVER_DEFAULTS['enforcement_message']}"
+            )
+        except ImportError:
+            defaults_msg = ""
+        
+        return (
+            "INVESTIGATION & REASONING - Multi-stage workflow for complex problems. "
+            "Use for: architecture decisions, complex bugs, performance challenges, security analysis. "
+            "Provides systematic hypothesis testing with expert validation. "
+            "Modes: low (quick), medium (standard), high (complex/default), max (exhaustive)."
+            + defaults_msg
+        )
 
     def __init__(self):
         """Initialize the ThinkDeep workflow tool"""
