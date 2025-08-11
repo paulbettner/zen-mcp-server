@@ -620,10 +620,12 @@ async def handle_list_tools() -> list[Tool]:
                 name="_zen_server_defaults",
                 description=(
                     "⚠️ ZEN MCP SERVER DEFAULT SETTINGS - PLEASE FOLLOW: "
-                    f"1. ALWAYS use model '{SERVER_DEFAULTS['model']}' unless user explicitly requests another model. "
-                    f"2. ALWAYS use temperature {SERVER_DEFAULTS['temperature']} unless user explicitly requests otherwise. "
-                    f"3. ALWAYS use thinking_mode '{SERVER_DEFAULTS['thinking_mode']}' unless user explicitly requests otherwise. "
-                    "These defaults are optimized for best results. Only deviate when the user specifically asks "
+                    "CORE TOOLS (chat, thinkdeep, planner, consensus): Use GPT-5 by default. "
+                    "DEVELOPMENT TOOLS (debug, codereview, analyze, refactor, tracer, testgen): Use Gemini-2.5-Pro by default (better for large context). "
+                    "QUALITY/SECURITY TOOLS (precommit, secaudit, docgen): Use Gemini-2.5-Pro by default. "
+                    "UTILITY TOOLS: Use GPT-5 by default. "
+                    f"ALL TOOLS: Use temperature {SERVER_DEFAULTS['temperature']} and thinking_mode '{SERVER_DEFAULTS['thinking_mode']}' unless user explicitly requests otherwise. "
+                    "These defaults are optimized for each tool category. Only deviate when the user specifically asks "
                     "(e.g., 'use o3 model', 'set temperature to 0.8', 'use minimal thinking'). "
                     "This is not a real tool - it's a server configuration notice."
                 ),

@@ -15,9 +15,29 @@ SERVER_DEFAULTS = {
     
     # Tool-specific default models (override global default)
     "tool_models": {
-        "debug": "gemini-2.5-pro",  # Debug benefits from Gemini's large context
-        "codereview": "gpt-5",
-        "analyze": "gpt-5",
+        # Core tools - use gpt-5 for general reasoning
+        "chat": "gpt-5",
+        "thinkdeep": "gpt-5",
+        "planner": "gpt-5",
+        "consensus": "gpt-5",
+        
+        # Development tools - use gemini-2.5-pro for large context analysis
+        "debug": "gemini-2.5-pro",
+        "codereview": "gemini-2.5-pro",
+        "analyze": "gemini-2.5-pro",
+        "refactor": "gemini-2.5-pro",
+        "tracer": "gemini-2.5-pro",
+        "testgen": "gemini-2.5-pro",
+        
+        # Quality & Security tools - use gemini-2.5-pro for large context
+        "precommit": "gemini-2.5-pro",
+        "secaudit": "gemini-2.5-pro",
+        "docgen": "gemini-2.5-pro",
+        
+        # Utility tools - use gpt-5
+        "challenge": "gpt-5",
+        "listmodels": "gpt-5",
+        "version": "gpt-5",
     },
     
     # Messages to communicate to AI agents
@@ -56,6 +76,11 @@ def get_default_for_model(model: str, setting: str):
     model_defaults = SERVER_DEFAULTS.get("model_defaults", {})
     model_settings = model_defaults.get(model, {})
     return model_settings.get(setting, SERVER_DEFAULTS.get(setting))
+
+def get_tool_default_model(tool_name: str) -> str:
+    """Get the default model for a specific tool."""
+    tool_models = SERVER_DEFAULTS.get("tool_models", {})
+    return tool_models.get(tool_name, SERVER_DEFAULTS.get("model", "gpt-5"))
 
 def format_defaults_for_description():
     """Format defaults for inclusion in tool descriptions."""

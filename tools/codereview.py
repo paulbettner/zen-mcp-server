@@ -197,8 +197,10 @@ class CodeReviewTool(WorkflowTool):
     def get_description(self) -> str:
         try:
             from config_defaults import SERVER_DEFAULTS
+            # Codereview tool uses gemini-2.5-pro by default for large context
+            default_model = SERVER_DEFAULTS.get('tool_models', {}).get('codereview', 'gemini-2.5-pro')
             defaults_msg = (
-                f" [DEFAULTS: model={SERVER_DEFAULTS['model']}, "
+                f" [DEFAULTS: model={default_model}, "
                 f"thinking={SERVER_DEFAULTS['thinking_mode']}] "
                 f"{SERVER_DEFAULTS['enforcement_message']}"
             )
